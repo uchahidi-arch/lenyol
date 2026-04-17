@@ -119,7 +119,7 @@ export default function AppHeader({ onOpenAuth, notifCount = 0, onToggleNotifs, 
       const scored = raw
         .map(p => ({
           p,
-          score: fuzzyScore(q.trim(), [p.prenom, p.nom, p.clan, p.localite, p.daho].filter(Boolean).join(' ')),
+          score: fuzzyScore(q.trim(), [p.prenom, p.nom, p.clan, p.localite, p.galle].filter(Boolean).join(' ')),
         }))
         .filter(x => x.score !== Infinity)
         .sort((a, b) => a.score - b.score)

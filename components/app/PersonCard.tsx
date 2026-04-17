@@ -15,7 +15,7 @@ function initials(p: Person) {
 }
 
 function ligneeStr(p: Person): string {
-  return [[p.prefix_lignee, p.clan].filter(Boolean).join(' '), p.daho]
+  return [[p.prefix_lignee, p.clan].filter(Boolean).join(' '), p.galle]
     .filter(Boolean).join(' · ');
 }
 

@@ -24,7 +24,7 @@ function ini(p: Person) {
   return ((p.prenom?.[0] || '?') + (p.nom?.[0] || '?')).toUpperCase();
 }
 function ligneeStr(p: Person) {
-  return [[p.prefix_lignee, p.clan].filter(Boolean).join(' '), p.daho].filter(Boolean).join(' · ');
+  return [[p.prefix_lignee, p.clan].filter(Boolean).join(' '), p.galle].filter(Boolean).join(' · ');
 }
 
 export default function TreeView({
