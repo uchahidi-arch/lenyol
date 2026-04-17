@@ -68,7 +68,8 @@ export default function LocalitePage({
       const { data: pData } = await supabase
         .from('persons')
         .select('*')
-        .eq('ile', match.ile)
+        .eq('region', match.region)
+        .eq('departement', match.departement)
         .eq('localite', match.localite)
         .order('nom', { ascending: true });
 
