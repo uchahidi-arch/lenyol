@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppState } from '@/hooks/useAppState';
 import { useDB } from '@/hooks/useDB';
-import type { RegionSenegal } from '@/lib/types';
+import type { Ethnie, RegionSenegal } from '@/lib/types';
 
 type Genre  = 'M' | 'F';
 type Status = 'alive' | 'dead';
@@ -95,7 +95,7 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
         deces_date: status === 'dead' ? decesDate.trim() : '',
         metier: metier.trim(),
         notes: notes.trim(),
-        ethnie: ethnie || null,
+        ethnie: ethnie as Ethnie || null
       });
       // Si c'est une femme, propager ses données à toute sa lignée matrilinéaire
       if (genre === 'F') {

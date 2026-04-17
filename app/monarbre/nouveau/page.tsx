@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppState } from '@/hooks/useAppState';
 import { useAuth } from '@/hooks/useAuth';
 import { useDB } from '@/hooks/useDB';
-import type { RegionSenegal } from '@/lib/types';
+import type { Ethnie, RegionSenegal } from '@/lib/types';
 
 type Genre   = 'M' | 'F';
 type Status  = 'alive' | 'dead';
@@ -154,7 +154,7 @@ function NouveauForm() {
         deces_date: status === 'dead' ? decesDate.trim() : '',
         metier: metier.trim(),
         notes: notes.trim(),
-        ethnie: ethnie || null,
+        ethnie: ethnie as Ethnie || null
       });
       if (relation && relatedId) await handleRelation(np.id, genre);
       await loadMyData();
