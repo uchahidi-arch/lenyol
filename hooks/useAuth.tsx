@@ -13,11 +13,11 @@ interface AuthContext {
   signUp: (
     email: string,
     password: string,
-    meta: { prenom: string; nom?: string; ile?: string; username?: string; cgu_accepted?: boolean }
+    meta: { prenom: string; nom?: string; region?: string; username?: string; cgu_accepted?: boolean }
   ) => Promise<string | null>;
   signOut: () => Promise<void>;
   updateUsername: (username: string) => Promise<string | null>;
-  updateProfile: (fields: { prenom: string; nom?: string | null; ile?: string | null }) => Promise<string | null>;
+  updateProfile: (fields: { prenom: string; nom?: string | null; region?: string | null }) => Promise<string | null>;
 }
 
 const AuthCtx = createContext<AuthContext | null>(null);
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (
     email: string,
     password: string,
-    meta: { prenom: string; nom?: string; ile?: string; username?: string; cgu_accepted?: boolean }
+    meta: { prenom: string; nom?: string; region?: string; username?: string; cgu_accepted?: boolean }
   ): Promise<string | null> => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return error.message;
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: userId,
         prenom: meta.prenom,
         nom: meta.nom,
-        ile: meta.ile,
+        region: meta.region,
         username: meta.username,
         cgu_accepted: meta.cgu_accepted ?? false,
         cgu_accepted_at: meta.cgu_accepted ? now : null,
@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   };
 
-  const updateProfile = async (fields: { prenom: string; nom?: string | null; ile?: string | null }): Promise<string | null> => {
+  const updateProfile = async (fields: { prenom: string; nom?: string | null; region?: string | null }): Promise<string | null> => {
     if (!user) return 'Non connecté.';
     const { data: rows, error } = await supabase
       .from('profiles')
@@ -158,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: user.id,
         prenom: fields.prenom,
         nom: fields.nom ?? null,
-        ile: (fields.ile as Profile['ile']) ?? null,
+        region: (fields.region as Profile['region']) ?? null,
       }, { onConflict: 'id' })
       .select();
     if (error) {

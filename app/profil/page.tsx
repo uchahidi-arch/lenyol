@@ -104,7 +104,7 @@ export default function ProfilPage() {
     const error = await updateProfile({
       prenom: infoPrenom.trim(),
       nom:    infoNom.trim() || null,
-      ile:    infoRegion || null,
+      region: infoRegion || null,
     });
     setSavingInfo(false);
     if (error) { toast(error, 'error'); return; }
