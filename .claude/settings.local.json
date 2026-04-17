@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(taskkill /PID 15276 /F)",
+      "Bash(taskkill //PID 15276 //F)",
+      "Bash(ls \"c:/Users/7MAKSACOD PC/Downloads/Aswilia/.env\"*)",
+      "Bash(cmd //c \"taskkill /PID 18088 /F\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\7MAKSACOD PC\\\\Downloads\\\\Aswilia\\\\app\\\\registre\\\\[id]\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\7MAKSACOD PC\\\\Downloads\\\\Aswilia\\\\app\\\\monarbre\\\\[id]\\\\modifier\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\7MAKSACOD PC\\\\Downloads\\\\Aswilia\\\\app\\\\monarbre\\\\[id]\\\\mariage\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\7MAKSACOD PC\\\\Downloads\\\\Aswilia\\\\app\\\\monarbre\\\\union\\\\[id]\")",
+      "Bash(node -e \"const sharp = require\\('sharp'\\); sharp\\('public/favicon.png'\\).metadata\\(\\).then\\(m => console.log\\(m.width, m.height, m.format\\)\\)\")",
+      "Bash(node -e \"const sharp = require\\('sharp'\\); sharp\\('public/favicon.png'\\).metadata\\(\\).then\\(m => console.log\\(m.width, m.height\\)\\)\")",
+      "Bash(xargs ls *)",
+      "Bash(mv 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/[ile]' 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/[region]')",
+      "Bash(mv 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/localite/[ile]' 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/localite/[region]')",
+      "Bash(mv 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/[region]/[region]' 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/[region]/[departement]')",
+      "Bash(mv 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/localite/[region]/[region]' 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/localite/[region]/[departement]')"
+    ]
+  }
+}

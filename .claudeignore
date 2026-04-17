@@ -1,0 +1,33 @@
+# Dépendances
+node_modules/
+
+# Build outputs
+.next/
+.vercel/
+out/
+dist/
+
+# Fichiers de lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Environnement
+.env*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+*.cache
