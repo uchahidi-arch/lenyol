@@ -20,9 +20,9 @@ export default function GriotSection() {
 Inspiré du rôle du griot, Lenyol vous permet de générer, écrire et partager les chroniques de votre famille, afin de préserver votre mémoire sur le long terme.
         </p>
 
-        <Link href="/chroniques" className="lng-cta">
+        <Link href="/griot" className="lng-cta lng-cta--lg">
           Découvrir le Griot
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
           </svg>
         </Link>

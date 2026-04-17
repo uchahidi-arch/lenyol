@@ -12,23 +12,23 @@ const FEATURES = [
     illustration: (
       <svg viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="40" y="28" width="200" height="44" rx="10" fill="white" opacity=".06" stroke="white" strokeWidth="1" strokeOpacity=".12"/>
-        <circle cx="65" cy="50" r="9" stroke="#60A5FA" strokeWidth="2" opacity=".7"/>
-        <line x1="72" y1="57" x2="78" y2="63" stroke="#60A5FA" strokeWidth="2.5" strokeLinecap="round" opacity=".7"/>
+        <circle cx="65" cy="50" r="9" stroke="#4A7A52" strokeWidth="2" opacity=".7"/>
+        <line x1="72" y1="57" x2="78" y2="63" stroke="#4A7A52" strokeWidth="2.5" strokeLinecap="round" opacity=".7"/>
         <rect x="88" y="44" width="90" height="12" rx="3" fill="white" opacity=".12"/>
         <rect x="40" y="88" width="200" height="20" rx="6" fill="white" opacity=".05" stroke="white" strokeOpacity=".07" strokeWidth="1"/>
-        <rect x="52" y="94" width="60" height="8" rx="2" fill="#60A5FA" opacity=".4"/>
+        <rect x="52" y="94" width="60" height="8" rx="2" fill="#4A7A52" opacity=".4"/>
         <rect x="124" y="96" width="40" height="5" rx="2" fill="white" opacity=".2"/>
         <rect x="40" y="116" width="200" height="20" rx="6" fill="white" opacity=".05" stroke="white" strokeOpacity=".07" strokeWidth="1"/>
-        <rect x="52" y="122" width="80" height="8" rx="2" fill="#60A5FA" opacity=".3"/>
+        <rect x="52" y="122" width="80" height="8" rx="2" fill="#4A7A52" opacity=".3"/>
         <rect x="144" y="124" width="30" height="5" rx="2" fill="white" opacity=".15"/>
         <rect x="40" y="144" width="200" height="20" rx="6" fill="white" opacity=".05" stroke="white" strokeOpacity=".07" strokeWidth="1"/>
-        <rect x="52" y="150" width="50" height="8" rx="2" fill="#60A5FA" opacity=".25"/>
+        <rect x="52" y="150" width="50" height="8" rx="2" fill="#4A7A52" opacity=".25"/>
       </svg>
     ),
   },
   {
-    tier: 'Essentiel · 3,99€',
-    tierColor: '#2563EB',
+    tier: 'Essentiel',
+    tierColor: '#3B5C3F',
     title: 'Arbre visuel interactif',
     desc: 'Visualisez toute votre famille en arbre navigable. Remontez aux ancêtres, descendez aux enfants, d\'un clic.',
     bg: '#0D2218',
@@ -55,8 +55,8 @@ const FEATURES = [
     ),
   },
   {
-    tier: 'Essentiel · 3,99€',
-    tierColor: '#2563EB',
+    tier: 'Essentiel',
+    tierColor: '#3B5C3F',
     title: 'Ethnie, caste & royaume',
     desc: 'Accédez aux données complètes de lignée : ethnie, caste, royaume d\'origine. Les bases du profil ancestral.',
     bg: '#1C1004',
@@ -86,32 +86,32 @@ const FEATURES = [
     ),
   },
   {
-    tier: 'Essentiel · 3,99€',
-    tierColor: '#2563EB',
+    tier: 'Essentiel',
+    tierColor: '#3B5C3F',
     title: 'Export PDF',
     desc: 'Exportez l\'arbre d\'ascendance en PDF A3, prêt à imprimer et à offrir. Mise en page soignée.',
     bg: '#0E0E1A',
     illustration: (
       <svg viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="74" y="14" width="108" height="140" rx="8" fill="#312E81" opacity=".3" stroke="#818CF8" strokeWidth="1" strokeOpacity=".25"/>
-        <rect x="74" y="14" width="108" height="20" rx="8" fill="#4338CA" opacity=".4"/>
-        <rect x="74" y="26" width="108" height="8" fill="#4338CA" opacity=".2"/>
-        <text x="128" y="28" textAnchor="middle" fill="#C7D2FE" fontSize="8" fontWeight="700" opacity=".7">PDF A3</text>
-        <circle cx="120" cy="80" r="9" fill="#4F46E5" opacity=".4" stroke="#818CF8" strokeWidth="1" strokeOpacity=".4"/>
-        <circle cx="140" cy="64" r="7" fill="#4F46E5" opacity=".35" stroke="#818CF8" strokeWidth="1" strokeOpacity=".3"/>
-        <circle cx="158" cy="80" r="7" fill="#4F46E5" opacity=".35" stroke="#818CF8" strokeWidth="1" strokeOpacity=".3"/>
-        <line x1="120" y1="80" x2="140" y2="64" stroke="#818CF8" strokeWidth="1" strokeOpacity=".3"/>
-        <line x1="120" y1="80" x2="107" y2="96" stroke="#818CF8" strokeWidth="1" strokeOpacity=".25"/>
-        <line x1="158" y1="80" x2="172" y2="96" stroke="#818CF8" strokeWidth="1" strokeOpacity=".25"/>
-        <rect x="90" y="112" width="76" height="5" rx="2" fill="#818CF8" opacity=".2"/>
-        <rect x="98" y="121" width="60" height="5" rx="2" fill="#818CF8" opacity=".15"/>
-        <rect x="204" y="136" width="32" height="32" rx="16" fill="#1E1B4B" stroke="#818CF8" strokeWidth="1.5" strokeOpacity=".5"/>
-        <path d="M220 141 L220 158 M214 153 L220 159 L226 153" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity=".8"/>
+        <rect x="74" y="14" width="108" height="140" rx="8" fill="#0D2E1A" opacity=".3" stroke="#6BAE7A" strokeWidth="1" strokeOpacity=".25"/>
+        <rect x="74" y="14" width="108" height="20" rx="8" fill="#1A4D2E" opacity=".4"/>
+        <rect x="74" y="26" width="108" height="8" fill="#1A4D2E" opacity=".2"/>
+        <text x="128" y="28" textAnchor="middle" fill="#A8D4B0" fontSize="8" fontWeight="700" opacity=".7">PDF A3</text>
+        <circle cx="120" cy="80" r="9" fill="#2D6B3A" opacity=".4" stroke="#6BAE7A" strokeWidth="1" strokeOpacity=".4"/>
+        <circle cx="140" cy="64" r="7" fill="#2D6B3A" opacity=".35" stroke="#6BAE7A" strokeWidth="1" strokeOpacity=".3"/>
+        <circle cx="158" cy="80" r="7" fill="#2D6B3A" opacity=".35" stroke="#6BAE7A" strokeWidth="1" strokeOpacity=".3"/>
+        <line x1="120" y1="80" x2="140" y2="64" stroke="#6BAE7A" strokeWidth="1" strokeOpacity=".3"/>
+        <line x1="120" y1="80" x2="107" y2="96" stroke="#6BAE7A" strokeWidth="1" strokeOpacity=".25"/>
+        <line x1="158" y1="80" x2="172" y2="96" stroke="#6BAE7A" strokeWidth="1" strokeOpacity=".25"/>
+        <rect x="90" y="112" width="76" height="5" rx="2" fill="#6BAE7A" opacity=".2"/>
+        <rect x="98" y="121" width="60" height="5" rx="2" fill="#6BAE7A" opacity=".15"/>
+        <rect x="204" y="136" width="32" height="32" rx="16" fill="#0A1F10" stroke="#6BAE7A" strokeWidth="1.5" strokeOpacity=".5"/>
+        <path d="M220 141 L220 158 M214 153 L220 159 L226 153" stroke="#6BAE7A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity=".8"/>
       </svg>
     ),
   },
   {
-    tier: 'Héro · 6,99€',
+    tier: 'Héro',
     tierColor: '#7C3AED',
     title: 'Connexion entre familles',
     desc: 'Reliez votre arbre à celui d\'une autre famille. Les deux parties valident la connexion avant qu\'elle soit établie.',
@@ -136,31 +136,31 @@ const FEATURES = [
     ),
   },
   {
-    tier: 'Héro · 6,99€',
+    tier: 'Héro',
     tierColor: '#7C3AED',
     title: 'Carte des migrations',
     desc: 'Visualisez les déplacements de votre famille à travers le Sénégal et l\'Afrique de l\'Ouest sur une carte interactive.',
     bg: '#071520',
     illustration: (
       <svg viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="20" y="20" width="240" height="140" rx="10" fill="#0C4A6E" opacity=".15" stroke="#0EA5E9" strokeWidth="1" strokeOpacity=".2"/>
-        <path d="M60 100 C80 60 120 40 160 55 C190 65 210 80 230 70" stroke="#0EA5E9" strokeWidth="2" strokeDasharray="4 3" opacity=".5"/>
-        <circle cx="60" cy="100" r="7" fill="#0369A1" opacity=".6" stroke="#0EA5E9" strokeWidth="1.5" strokeOpacity=".8"/>
-        <circle cx="160" cy="55" r="6" fill="#0369A1" opacity=".5" stroke="#0EA5E9" strokeWidth="1.5" strokeOpacity=".6"/>
-        <circle cx="230" cy="70" r="5" fill="#0369A1" opacity=".4" stroke="#0EA5E9" strokeWidth="1.5" strokeOpacity=".5"/>
-        <text x="60" y="116" textAnchor="middle" fill="#7DD3FC" fontSize="7" opacity=".6">Dakar</text>
-        <text x="160" y="46" textAnchor="middle" fill="#7DD3FC" fontSize="7" opacity=".6">Thiès</text>
-        <text x="230" y="61" textAnchor="middle" fill="#7DD3FC" fontSize="7" opacity=".5">Saint-Louis</text>
-        <circle cx="60" cy="100" r="14" fill="#0EA5E9" opacity=".07"/>
-        <circle cx="160" cy="55" r="11" fill="#0EA5E9" opacity=".06"/>
-        <path d="M155 55 L162 50 L164 57 Z" fill="#0EA5E9" opacity=".6"/>
-        <rect x="36" y="128" width="60" height="16" rx="5" fill="#0C4A6E" opacity=".5" stroke="#0EA5E9" strokeWidth="1" strokeOpacity=".3"/>
-        <text x="66" y="139" textAnchor="middle" fill="#7DD3FC" fontSize="8" fontWeight="600" opacity=".7">3 générations</text>
+        <rect x="20" y="20" width="240" height="140" rx="10" fill="#0D3320" opacity=".15" stroke="#3B5C3F" strokeWidth="1" strokeOpacity=".2"/>
+        <path d="M60 100 C80 60 120 40 160 55 C190 65 210 80 230 70" stroke="#3B5C3F" strokeWidth="2" strokeDasharray="4 3" opacity=".5"/>
+        <circle cx="60" cy="100" r="7" fill="#2D6B3A" opacity=".6" stroke="#3B5C3F" strokeWidth="1.5" strokeOpacity=".8"/>
+        <circle cx="160" cy="55" r="6" fill="#2D6B3A" opacity=".5" stroke="#3B5C3F" strokeWidth="1.5" strokeOpacity=".6"/>
+        <circle cx="230" cy="70" r="5" fill="#2D6B3A" opacity=".4" stroke="#3B5C3F" strokeWidth="1.5" strokeOpacity=".5"/>
+        <text x="60" y="116" textAnchor="middle" fill="#A8D4B0" fontSize="7" opacity=".6">Dakar</text>
+        <text x="160" y="46" textAnchor="middle" fill="#A8D4B0" fontSize="7" opacity=".6">Thiès</text>
+        <text x="230" y="61" textAnchor="middle" fill="#A8D4B0" fontSize="7" opacity=".5">Saint-Louis</text>
+        <circle cx="60" cy="100" r="14" fill="#3B5C3F" opacity=".07"/>
+        <circle cx="160" cy="55" r="11" fill="#3B5C3F" opacity=".06"/>
+        <path d="M155 55 L162 50 L164 57 Z" fill="#3B5C3F" opacity=".6"/>
+        <rect x="36" y="128" width="60" height="16" rx="5" fill="#0D3320" opacity=".5" stroke="#3B5C3F" strokeWidth="1" strokeOpacity=".3"/>
+        <text x="66" y="139" textAnchor="middle" fill="#A8D4B0" fontSize="8" fontWeight="600" opacity=".7">3 générations</text>
       </svg>
     ),
   },
   {
-    tier: 'Premium · 14,99€',
+    tier: 'Premium',
     tierColor: '#B45309',
     title: 'Griot Numérique & Audio',
     desc: 'Un griot personnalisé raconte l\'histoire de votre famille. Archives audio de griots réels, chroniques transmises à vos enfants.',
@@ -249,9 +249,6 @@ export default function Features() {
           {FEATURES.map(f => (
             <div key={f.title} className="lnf-card" style={{ '--card-bg': f.bg } as React.CSSProperties}>
               <div className="lnf-card-img" style={{ background: f.bg }}>
-                <div className="lnf-tier-badge" style={{ background: f.tierColor + '22', border: `1px solid ${f.tierColor}55`, color: f.tierColor }}>
-                  {f.tier}
-                </div>
                 {f.illustration}
               </div>
               <div className="lnf-card-body">

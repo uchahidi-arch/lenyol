@@ -17,7 +17,13 @@
       "Bash(mv 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/[ile]' 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/[region]')",
       "Bash(mv 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/localite/[ile]' 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/localite/[region]')",
       "Bash(mv 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/[region]/[region]' 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/[region]/[departement]')",
-      "Bash(mv 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/localite/[region]/[region]' 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/localite/[region]/[departement]')"
+      "Bash(mv 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/localite/[region]/[region]' 'c:/Users/7MAKSACOD PC/Documents/Site/genealogie senegalaise/app/registre/localite/[region]/[departement]')",
+      "Bash(xargs cat *)",
+      "Bash(taskkill /PID 38568 /F)",
+      "Bash(cmd /c \"taskkill /PID 38568 /F\")",
+      "Bash(cmd /c \"taskkill /F /IM node.exe\")",
+      "Bash(cmd /c \"tasklist | findstr node\")",
+      "Bash(xargs grep *)"
     ]
   }
 }

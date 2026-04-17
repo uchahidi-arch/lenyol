@@ -56,7 +56,7 @@ export default function Hero({ onNavigateToApp }: HeroProps) {
         maxWidth: '640px',
         marginBottom: '16px',
       }}>
-        Recherchez une famille, une personne ou une localité
+        Chaque nom a une histoire. La vôtre commence ici.
       </h1>
 
       {/* Subtext */}

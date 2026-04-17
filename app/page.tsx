@@ -2,15 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import RegistreView from '@/components/app/RegistreView';
+import HomeNav from '@/components/home/HomeNav';
+import Hero from '@/components/home/Hero';
+import StatsBar from '@/components/home/StatsBar';
+import Features from '@/components/home/Features';
+import GriotSection from '@/components/home/GriotSection';
+import Contribution from '@/components/home/Contribution';
+import HomeFooter from '@/components/home/HomeFooter';
 import AuthModal from '@/components/auth/AuthModal';
-import Toast from '@/components/ui/Toast';
-import { useAuth } from '@/hooks/useAuth';
-import type { Person } from '@/lib/types';
 
-export default function RegistrePage() {
+export default function HomePage() {
   const router = useRouter();
-  const { user } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
 
@@ -19,22 +21,18 @@ export default function RegistrePage() {
     setAuthOpen(true);
   };
 
+  const goToApp = () => router.push('/registre');
+
   return (
     <>
-      <RegistreView
-        onShowPerson={(p: Person) => router.push(`/registre/${p.id}`)}
-        onOpenAuth={openAuth}
-        onRelier={(id) => {
-          if (!user) { openAuth('signup'); return; }
-          router.push(`/monarbre/nouveau?relatedId=${id}`);
-        }}
-      />
-      <AuthModal
-        open={authOpen}
-        initialTab={authTab}
-        onClose={() => setAuthOpen(false)}
-      />
-      <Toast />
+      <HomeNav onNavigateToApp={goToApp} onOpenAuth={openAuth} />
+      <Hero onNavigateToApp={goToApp} onOpenAuth={openAuth} />
+      <StatsBar />
+      <Features />
+      <GriotSection />
+      <Contribution onOpenAuth={openAuth} />
+      <HomeFooter />
+      <AuthModal open={authOpen} initialTab={authTab} onClose={() => setAuthOpen(false)} />
     </>
   );
 }
