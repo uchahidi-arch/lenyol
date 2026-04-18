@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import AppHeader from '@/components/app/AppHeader';
+import HomeNav from '@/components/home/HomeNav';
+import HomeFooter from '@/components/home/HomeFooter';
 import NotifPanel from '@/components/app/NotifPanel';
 import AuthModal from '@/components/auth/AuthModal';
 import Toast from '@/components/ui/Toast';
+import AppSidebar from '@/components/app/AppSidebar';
+import { SidebarProvider } from '@/hooks/useSidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { useDB } from '@/hooks/useDB';
 import { useRealtime } from '@/hooks/useRealtime';
@@ -36,28 +38,23 @@ export default function MonarbreLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      <Toast />
-      <AppHeader
-        onOpenAuth={(tab) => { setAuthTab(tab); setAuthOpen(true); }}
-        notifCount={notifCount}
-        onToggleNotifs={() => setNotifsOpen(v => !v)}
-      />
-      <div className="app-main" style={{ position: 'relative' }}>
-        {children}
-      </div>
-      <footer className="app-footer">
-        <Image
-          src="/logo.png"
-          alt="Lenyol"
-          width={100}
-          height={28}
-          style={{ objectFit: 'contain', width: 'auto', height: '28px' }}
+    <SidebarProvider>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Toast />
+        <HomeNav
+          onNavigateToApp={() => router.push('/registre')}
+          onOpenAuth={(tab) => { setAuthTab(tab); setAuthOpen(true); }}
         />
-        <div className="app-footer-right">Pensé &amp; Développé par <span>U-DATA</span></div>
-      </footer>
-      <NotifPanel open={notifsOpen} onClose={() => setNotifsOpen(false)} onCountChange={setNotifCount} />
-      <AuthModal open={authOpen} initialTab={authTab} onClose={() => setAuthOpen(false)} />
-    </div>
+        <div style={{ display: 'flex', flex: 1, paddingTop: '72px' }}>
+          <AppSidebar />
+          <div className="app-main" style={{ position: 'relative', flex: 1, paddingBottom: '120px', overflow: 'hidden', '--page-left': '32px' } as React.CSSProperties}>
+            {children}
+          </div>
+        </div>
+        <HomeFooter />
+        <NotifPanel open={notifsOpen} onClose={() => setNotifsOpen(false)} onCountChange={setNotifCount} />
+        <AuthModal open={authOpen} initialTab={authTab} onClose={() => setAuthOpen(false)} />
+      </div>
+    </SidebarProvider>
   );
 }

@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import HomeFooter from '@/components/home/HomeFooter';
-import AboutNavWrapper from '@/components/home/AboutNavWrapper';
 import { useAuth } from '@/hooks/useAuth';
+import { useRacinesFilter } from './layout';
 
 interface Article {
   id: string;
@@ -16,13 +15,13 @@ interface Article {
   created_at: string;
 }
 
-const CATEGORIES = ['Tous', 'Royaumes', 'Lignées', 'Ethnies', 'Noms de familles'];
+const CATEGORIES = ['Tous', 'Royaumes', 'Lignées', 'Ethnies', 'Familles'];
 
 const CAT_COLORS: Record<string, string> = {
   royaumes:           'var(--gold)',
   lignées:            'var(--green)',
   ethnies:            '#7c5cbf',
-  'noms de familles': 'var(--rose)',
+  'familles': 'var(--rose)',
 };
 
 function catColor(cat: string) {
@@ -36,10 +35,10 @@ function formatDate(iso: string) {
 export default function RacinesPage() {
   const { profile } = useAuth();
   const canWrite = profile?.role === 'redacteur' || profile?.role === 'admin';
+  const { categorie: activeFilter, setCategorie: setActiveFilter } = useRacinesFilter();
 
   const [articles, setArticles]     = useState<Article[]>([]);
   const [loading, setLoading]       = useState(true);
-  const [activeFilter, setActiveFilter] = useState('Tous');
 
   useEffect(() => {
     import('@/lib/supabase').then(async ({ supabase }) => {
@@ -58,16 +57,11 @@ export default function RacinesPage() {
     : articles.filter(a => a.categorie?.toLowerCase() === activeFilter.toLowerCase());
 
   return (
-    <>
-      <AboutNavWrapper />
-
-      <main style={{ paddingTop: '64px', background: 'var(--bg)', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100%' }}>
 
         {/* ── EN-TÊTE ── */}
         <section style={{
-          maxWidth: '1100px',
-          margin: '0 auto',
-          padding: '64px 48px 36px',
+          padding: '64px 48px 36px var(--page-left)',
           borderBottom: '1px solid var(--bd)',
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
@@ -101,7 +95,7 @@ export default function RacinesPage() {
                 maxWidth: '480px',
                 lineHeight: 1.6,
               }}>
-                Textes sur les royaumes, lignées, ethnies et noms de familles des Comores.
+                Textes sur les royaumes, lignées, ethnies et familles du Sénégal.
               </p>
             </div>
             {canWrite && (
@@ -150,7 +144,7 @@ export default function RacinesPage() {
         </section>
 
         {/* ── GRILLE ── */}
-        <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '48px 48px 96px' }}>
+        <section style={{ padding: '48px 48px 96px var(--page-left)' }}>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
               <div className="spin" />
@@ -252,9 +246,6 @@ export default function RacinesPage() {
           )}
         </section>
 
-      </main>
-
-      <HomeFooter />
-    </>
+    </div>
   );
 }

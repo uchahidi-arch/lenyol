@@ -1,12 +1,24 @@
 'use client';
 
-import { Suspense, useState, createContext, useContext } from 'react';
+import { Suspense, useState, createContext, useContext, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import HomeNav from '@/components/home/HomeNav';
+import HomeFooter from '@/components/home/HomeFooter';
 import AuthModal from '@/components/auth/AuthModal';
 import Toast from '@/components/ui/Toast';
+import AppSidebar, { type RegistreSidebarCbs } from '@/components/app/AppSidebar';
+import { SidebarProvider } from '@/hooks/useSidebar';
 
-export const RegistreSearchCtx = createContext<{ searchQ: string }>({ searchQ: '' });
+interface RegistreCtxType {
+  searchQ: string;
+  sidebarCbs: React.RefObject<RegistreSidebarCbs | null>;
+}
+
+export const RegistreSearchCtx = createContext<RegistreCtxType>({
+  searchQ: '',
+  sidebarCbs: { current: null },
+});
+
 export function useRegistreSearch() { return useContext(RegistreSearchCtx); }
 
 function RegistreLayoutInner({ children }: { children: React.ReactNode }) {
@@ -15,24 +27,27 @@ function RegistreLayoutInner({ children }: { children: React.ReactNode }) {
   const searchQ = params.get('q') ?? '';
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab,  setAuthTab]  = useState<'login' | 'signup'>('login');
+  const sidebarCbs = useRef<RegistreSidebarCbs | null>(null);
 
   return (
-    <RegistreSearchCtx.Provider value={{ searchQ }}>
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f9f9f7' }}>
-        <Toast />
-        <HomeNav
-          onNavigateToApp={() => router.push('/registre')}
-          onOpenAuth={(tab) => { setAuthTab(tab); setAuthOpen(true); }}
-        />
-        <div style={{ flex: 1, paddingTop: '72px' }}>
-          {children}
+    <RegistreSearchCtx.Provider value={{ searchQ, sidebarCbs }}>
+      <SidebarProvider>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f9f9f7' }}>
+          <Toast />
+          <HomeNav
+            onNavigateToApp={() => router.push('/registre')}
+            onOpenAuth={(tab) => { setAuthTab(tab); setAuthOpen(true); }}
+          />
+          <div style={{ display: 'flex', flex: 1, paddingTop: '72px' }}>
+            <AppSidebar registreCbs={sidebarCbs} />
+            <main style={{ flex: 1, minWidth: 0, '--page-left': '32px' } as React.CSSProperties}>
+              {children}
+            </main>
+          </div>
+          <HomeFooter />
+          <AuthModal open={authOpen} initialTab={authTab} onClose={() => setAuthOpen(false)} />
         </div>
-        <footer className="app-footer">
-          <div>© {new Date().getFullYear()} Tous droits réservés.</div>
-          <div className="app-footer-right">Pensé &amp; Développé par <span>U-DATA</span></div>
-        </footer>
-        <AuthModal open={authOpen} initialTab={authTab} onClose={() => setAuthOpen(false)} />
-      </div>
+      </SidebarProvider>
     </RegistreSearchCtx.Provider>
   );
 }

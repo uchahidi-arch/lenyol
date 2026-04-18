@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AppHeader from '@/components/app/AppHeader';
+import HomeFooter from '@/components/home/HomeFooter';
 import AuthModal from '@/components/auth/AuthModal';
 import Toast from '@/components/ui/Toast';
 
@@ -10,18 +11,15 @@ export default function ProfilLayout({ children }: { children: React.ReactNode }
   const [authTab,  setAuthTab]  = useState<'login' | 'signup'>('login');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Toast />
       <AppHeader
         onOpenAuth={(tab) => { setAuthTab(tab); setAuthOpen(true); }}
       />
-      <div className="app-main" style={{ position: 'relative', overflowY: 'auto' }}>
+      <div className="app-main" style={{ position: 'relative', flex: 1, overflowY: 'auto' }}>
         {children}
       </div>
-      <footer className="app-footer">
-        <div>© {new Date().getFullYear()} Tous droits réservés.</div>
-        <div className="app-footer-right">Pensé &amp; Développé par <span>U-DATA</span></div>
-      </footer>
+      <HomeFooter />
       <AuthModal open={authOpen} initialTab={authTab} onClose={() => setAuthOpen(false)} />
     </div>
   );

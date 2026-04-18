@@ -4,8 +4,8 @@ import { AuthProvider } from '@/hooks/useAuth';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Aswilia',
-  description: 'Plateforme de mémoire généalogique comorienne',
+  title: 'Lenyol — Généalogie Sénégalaise',
+  description: 'Plateforme de mémoire généalogique sénégalaise',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

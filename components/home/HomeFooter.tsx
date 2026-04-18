@@ -22,8 +22,7 @@ export default function HomeFooter() {
           <div className="ln-footer-links">
             <Link href="/monarbre" className="ln-footer-link">Mon Arbre</Link>
             <Link href="/registre" className="ln-footer-link">Registre</Link>
-            <Link href="/registre/lenyol" className="ln-footer-link">Lignées</Link>
-            <Link href="/chroniques" className="ln-footer-link">Griot & Chroniques</Link>
+            <Link href="/chroniques" className="ln-footer-link">Griot & Racines</Link>
           </div>
         </div>
 

@@ -7,6 +7,7 @@ import { useDB } from '@/hooks/useDB';
 import { useAuth } from '@/hooks/useAuth';
 import type { Person } from '@/lib/types';
 import { useRegistreSearch } from '@/app/registre/layout';
+import { useSidebar } from '@/hooks/useSidebar';
 
 type RegistreTab = 'regions' | 'ethnie' | 'nom' | 'creators' | 'all';
 type Step = 'regions' | 'localites' | 'persons';
@@ -133,7 +134,8 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
   const router = useRouter();
   const { fetchByLocalite, fetchByClan, searchPersons } = useDB();
   const { user } = useAuth();
-  const { searchQ } = useRegistreSearch();
+  const { searchQ, sidebarCbs } = useRegistreSearch();
+  const { nomQ } = useSidebar();
 
   const [tab, setTab]   = useState<RegistreTab>('regions');
   const [step, setStep] = useState<Step>('regions');
@@ -177,6 +179,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
   const [selectedCreator, setSelectedCreator] = useState<{ id: string; name: string; total: number } | null>(null);
   const [creatorPersons, setCreatorPersons] = useState<Person[]>([]);
   const [creatorPersonsLoading, setCreatorPersonsLoading] = useState(false);
+
 
   // Chargement des stats légères au montage (toutes les pages, sans limite Supabase)
   useEffect(() => {
@@ -326,6 +329,37 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
     setCreatorPersonsLoading(false);
   };
 
+  // ── Navigation rapide depuis la sidebar
+  const jumpToEthnie = async (name: string) => {
+    setTab('ethnie');
+    setStep('persons');
+    setLoading(true);
+    const data = await fetchByClan(name);
+    setPersons(data);
+    setFilterQ('');
+    setLoading(false);
+  };
+
+  const jumpToRegion = (name: string) => {
+    setTab('regions');
+    pickRegion(name);
+  };
+
+  // ── Enregistrer les callbacks dans le ref de la sidebar globale
+  useEffect(() => {
+    if (sidebarCbs) {
+      sidebarCbs.current = {
+        jumpToEthnie,
+        jumpToRegion,
+        pickLenyol,
+        loadNomField: () => loadByField('nom'),
+        filteredNomGroups: (tab === 'nom' && nomQ.trim())
+          ? lenyolGroups.filter(g => normalize(g.label).includes(normalize(nomQ.trim())))
+          : lenyolGroups,
+      };
+    }
+  });
+
   // ── Filtre local (dans les résultats par région/lenyol/all)
   const filteredPersons = filterQ
     ? persons.filter(p => {
@@ -346,6 +380,11 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
   });
   const totalListPages = Math.ceil(sortedPersons.length / PAGE_SIZE);
   const pagePersons = sortedPersons.slice(listPage * PAGE_SIZE, (listPage + 1) * PAGE_SIZE);
+
+  // ── Groupes noms filtrés par la sidebar
+  const filteredNomGroups = (tab === 'nom' && nomQ.trim())
+    ? lenyolGroups.filter(g => normalize(g.label).includes(normalize(nomQ.trim())))
+    : lenyolGroups;
 
   // Breadcrumb helper
   const TAB_LABELS: Record<RegistreTab, string> = {
@@ -418,13 +457,17 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
 
   return (
     <div style={{ position: 'relative', flex: 1, width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div className="view-section" style={{ position: 'relative', zIndex: 1, background: 'transparent', flex: 1 }}>
+
+      {/* ── CONTENU PRINCIPAL ── */}
+      <div
+        className="view-section"
+        style={{ position: 'relative', zIndex: 1, background: 'transparent', flex: 1 }}
+      >
 
         {/* Introduction */}
+        <div style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         <div style={{
-          padding: '48px 32px 40px',
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
-          maxWidth: '680px',
+          padding: '48px 32px 40px var(--page-left)',
         }}>
           <h1 style={{
             fontSize: 'clamp(26px, 4vw, 36px)',
@@ -445,10 +488,11 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
             margin: 0,
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 400,
-            maxWidth: '520px',
+            maxWidth: '720px',
           }}>
             Des milliers de lignées documentées, organisées par région, ethnie et caste.
           </p>
+        </div>
         </div>
 
         {/* Tabs */}
@@ -526,7 +570,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
           <>
             {/* Cartes régions sénégalaises */}
             {tab === 'regions' && step === 'regions' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', padding: '24px', overflowY: 'auto', flex: 1, alignContent: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', padding: '24px 32px 24px var(--page-left)', overflowY: 'auto', flex: 1, alignContent: 'start' }}>
                 {REGION_CONFIG.map(({ name, nameShort, code, accent, ethnies }) => {
                   const regionPersons = allPersonsLight.filter(p => p.region === name);
                   const personnes = regionPersons.length;
@@ -665,7 +709,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
             )}
 
             {tab === 'regions' && step === 'localites' && (
-              <div style={{ overflowY: 'auto', flex: 1, padding: '0 24px 24px' }}>
+              <div style={{ overflowY: 'auto', flex: 1, padding: '0 32px 32px var(--page-left)' }}>
                 {currentDepartements.map(([dep, locs]) => (
                   <div key={dep} style={{ marginBottom: '28px' }}>
                     <div
@@ -738,7 +782,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
 
             {/* Grille ethnies */}
             {tab === 'ethnie' && step === 'regions' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px', padding: '24px', overflowY: 'auto', flex: 1, alignContent: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px', padding: '24px 32px 24px var(--page-left)', overflowY: 'auto', flex: 1, alignContent: 'start' }}>
                 {ETHNIES_CONFIG.map(({ name, desc, accent, bg, symbol }) => {
                   const count = lenyolGroups.find(g => normalize(g.label) === normalize(name))?.count ?? 0;
                   if (count === 0) return null;
@@ -797,10 +841,10 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
 
             {/* Liste alphabétique noms de famille */}
             {tab === 'nom' && step === 'regions' && (
-              <div style={{ flex: 1, overflowY: 'auto', padding: '0 32px 32px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0 32px 32px var(--page-left)' }}>
                 {(() => {
                   const grouped: Record<string, { label: string; count: number }[]> = {};
-                  lenyolGroups.forEach(g => {
+                  filteredNomGroups.forEach(g => {
                     const letter = (g.label[0] || '#').toUpperCase();
                     if (!grouped[letter]) grouped[letter] = [];
                     grouped[letter].push(g);
@@ -884,7 +928,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
 
             {/* Classement Par Créateur */}
             {tab === 'creators' && !selectedCreator && (
-              <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ padding: '24px 32px 24px var(--page-left)', overflowY: 'auto', flex: 1 }}>
                 {creatorLoading ? (
                   <div className="empty-grid"><div className="spin" style={{ width: 24, height: 24, borderWidth: 2 }} /></div>
                 ) : creators.length === 0 ? (
@@ -949,7 +993,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
 
             {/* Profil créateur */}
             {tab === 'creators' && selectedCreator && (
-              <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ padding: '24px 32px 24px var(--page-left)', overflowY: 'auto', flex: 1 }}>
                 {/* En-tête profil */}
                 <div style={{
                   background: 'rgba(255,255,255,0.85)',

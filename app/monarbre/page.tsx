@@ -1,118 +1,215 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import { useAppState } from '@/hooks/useAppState';
 import { useDB } from '@/hooks/useDB';
-import type { Person } from '@/lib/types';
+import PersonCard from '@/components/app/PersonCard';
 
-function pName(p: Person) { return [p.prenom, p.nom].filter(Boolean).join(' '); }
+function normalize(s: string) {
+  return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
 
-export default function NouvelleUnionPage() {
-  const router    = useRouter();
-  const { state } = useAppState();
-  const { addUnion, loadMyData } = useDB();
+export default function MonArbrePage() {
+  const router        = useRouter();
+  const { user, profile } = useAuth();
+  const { state }     = useAppState();
 
-  const men   = state.myPersons.filter(p => p.genre === 'M').sort((a, b) => (a.prenom || '').localeCompare(b.prenom || ''));
-  const women = state.myPersons.filter(p => p.genre === 'F').sort((a, b) => (a.prenom || '').localeCompare(b.prenom || ''));
+  const { importGEDCOM } = useDB();
+  const gedcomRef = useRef<HTMLInputElement>(null);
 
-  const [pereId,     setPereId]     = useState('');
-  const [mereId,     setMereId]     = useState('');
-  const [kidsIds,    setKidsIds]    = useState<string[]>([]);
-  const [kidsFilter, setKidsFilter] = useState('');
-  const [saving,     setSaving]     = useState(false);
+  const [searchQ, setSearchQ]         = useState('');
+  const [aliveOnly, setAliveOnly]     = useState(false);
+  const [genreFilter, setGenreFilter] = useState<'M' | 'F' | null>(null);
 
-  const existingWarn = pereId && mereId ? (() => {
-    const exists = state.myUnions.find(u => u.pere_id === pereId && u.mere_id === mereId);
-    return exists ? '⚠️ Ce couple existe déjà.' : '';
-  })() : '';
+  const myPersons = state.myPersons;
+  const unions = state.myUnions.length;
 
-  const filteredKids = state.myPersons.filter(p => {
-    if (p.id === pereId || p.id === mereId) return false;
-    if (kidsFilter) {
-      const q = kidsFilter.toLowerCase();
-      return (p.prenom || '').toLowerCase().includes(q) || (p.nom || '').toLowerCase().includes(q);
+  const generations = useMemo(() => {
+    const years = myPersons
+      .map(p => p.naiss_date ? parseInt(p.naiss_date.slice(0, 4)) : null)
+      .filter((y): y is number => y !== null && !isNaN(y));
+    if (years.length === 0) return 1;
+    return Math.max(1, Math.ceil((Math.max(...years) - Math.min(...years)) / 25) + 1);
+  }, [myPersons]);
+
+  const firstName = profile?.prenom || user?.email?.split('@')[0] || '';
+
+  const filtered = useMemo(() => {
+    let list = myPersons;
+    if (aliveOnly) list = list.filter(p => !p.deceased);
+    if (genreFilter) list = list.filter(p => p.genre === genreFilter);
+    if (searchQ) {
+      const q = normalize(searchQ);
+      list = list.filter(p => {
+        const target = normalize([p.prenom, p.nom, p.clan, p.localite].filter(Boolean).join(' '));
+        return q.split(/\s+/).every(t => target.includes(t));
+      });
     }
-    return true;
-  });
-
-  const toggleKid = (kid: string) => setKidsIds(prev => prev.includes(kid) ? prev.filter(k => k !== kid) : [...prev, kid]);
-
-  async function save() {
-    if (!pereId && !mereId) { alert('Choisissez au moins un parent.'); return; }
-    if (pereId && mereId && pereId === mereId) { alert('Le père et la mère doivent être différents.'); return; }
-    setSaving(true);
-    try {
-      await addUnion({ pere_id: pereId || null, mere_id: mereId || null, enfants_ids: kidsIds });
-      await loadMyData();
-      router.push('/monarbre');
-    } catch (err: any) {
-      alert('Erreur : ' + err.message);
-    }
-    setSaving(false);
-  }
+    return list;
+  }, [myPersons, aliveOnly, genreFilter, searchQ]);
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '24px', maxWidth: 540, margin: '0 auto', width: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-        <button className="btn btn-sec" style={{ fontSize: 11 }} onClick={() => router.back()}>⬅ Retour</button>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, margin: 0 }}>
-          Nouveau mariage
+    <div style={{ flex: 1, overflowY: 'auto' }}>
+
+      {/* En-tête — titre + sous-titre uniquement, borderBottom = le délimiteur */}
+      <div style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      <div style={{
+        padding: '48px 32px 40px var(--page-left)',
+      }}>
+        <h1 style={{
+          fontSize: 'clamp(26px, 4vw, 36px)',
+          fontWeight: 700,
+          fontFamily: "'Cormorant Garamond', serif",
+          color: 'var(--t1)',
+          lineHeight: 1.2,
+          margin: 0,
+          marginBottom: '12px',
+          letterSpacing: '-0.01em',
+        }}>
+          {firstName ? `${firstName}, votre lignée vous attend.` : 'Votre lignée vous attend.'}
         </h1>
+        <p style={{
+          fontSize: '15px',
+          color: 'var(--t3)',
+          lineHeight: 1.7,
+          margin: 0,
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontWeight: 400,
+          maxWidth: '720px',
+        }}>
+          Votre famille, vos ancêtres, votre royaume — en un seul endroit.
+        </p>
+      </div>
       </div>
 
-      <div className="f-row">
-        <label className="f-lbl">Père</label>
-        <select className="f-sel" value={pereId} onChange={e => setPereId(e.target.value)}>
-          <option value="">— Choisir —</option>
-          {men.map(p => <option key={p.id} value={p.id}>{pName(p)}</option>)}
-        </select>
-      </div>
-
-      <div className="f-row">
-        <label className="f-lbl">Mère</label>
-        <select className="f-sel" value={mereId} onChange={e => setMereId(e.target.value)}>
-          <option value="">— Choisir —</option>
-          {women.map(p => <option key={p.id} value={p.id}>{pName(p)}</option>)}
-        </select>
-      </div>
-
-      {existingWarn && (
-        <div style={{ background: '#fff8f1', border: '1px solid #fbd38d', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 12 }}>
-          {existingWarn}
+      {/* Barre stats — pleine largeur, juste après le délimiteur (état non vide) */}
+      {myPersons.length > 0 && (
+        <div style={{
+          padding: '11px 32px 11px var(--page-left)',
+          borderBottom: '1px solid var(--bd)',
+          background: '#FAFAF9',
+          fontSize: 13,
+          color: 'var(--t3)',
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          display: 'flex',
+          alignItems: 'center',
+        }}>
+          <span style={{ color: 'var(--t2)', fontWeight: 500 }}>{myPersons.length}</span>
+          <span style={{ marginLeft: 4 }}>personne{myPersons.length > 1 ? 's' : ''}</span>
+          <span style={{ margin: '0 8px', opacity: 0.35 }}>·</span>
+          <span style={{ color: 'var(--t2)', fontWeight: 500 }}>{generations}</span>
+          <span style={{ marginLeft: 4 }}>génération{generations > 1 ? 's' : ''}</span>
+          <span style={{ margin: '0 8px', opacity: 0.35 }}>·</span>
+          <span style={{ color: 'var(--t2)', fontWeight: 500 }}>{unions}</span>
+          <span style={{ marginLeft: 4 }}>famille{unions > 1 ? 's' : ''} connectée{unions > 1 ? 's' : ''}</span>
         </div>
       )}
 
-      <div className="f-row" style={{ position: 'relative' }}>
-        <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--t3)' }}
-          width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-        </svg>
-        <input className="f-input" placeholder="Rechercher un enfant…" value={kidsFilter}
-          onChange={e => setKidsFilter(e.target.value)} style={{ paddingLeft: 28 }} />
-      </div>
-
-      <div className="f-row">
-        <label className="f-lbl">Enfants de ce mariage</label>
-        <div className="kids-sel">
-          {filteredKids.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'var(--t3)', padding: 8 }}>Aucun enfant disponible</div>
-          ) : filteredKids.map(p => (
-            <label key={p.id} className={`kid-item${kidsIds.includes(p.id) ? ' on' : ''}`}>
-              <input type="checkbox" style={{ display: 'none' }} checked={kidsIds.includes(p.id)} onChange={() => toggleKid(p.id)} />
-              <span className={`kid-av ${p.genre || 'M'}`}>{(p.prenom?.[0] || '?').toUpperCase()}</span>
-              <span className="kid-name">{p.prenom} {p.nom || ''}{p.deceased ? ' 🕊️' : ''}</span>
-            </label>
+      {/* Étapes — arbre vide, sous le délimiteur */}
+      {myPersons.length === 0 && (
+        <div style={{ padding: '28px 32px 8px var(--page-left)', display: 'flex', alignItems: 'flex-start', gap: 0, flexWrap: 'wrap' }}>
+          {[
+            { n: '1', titre: 'Ajoutez-vous', desc: 'Commencez par vous-même comme point de départ.' },
+            { n: '2', titre: 'Ajoutez vos parents', desc: 'Reliez vos parents et grands-parents.' },
+            { n: '3', titre: 'Remontez vers vos ancêtres', desc: 'Explorez et complétez votre lignée.' },
+          ].map((step, i) => (
+            <div key={step.n} style={{ display: 'flex', alignItems: 'flex-start' }}>
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: 6,
+                padding: '14px 16px',
+                border: '1px solid rgba(0,0,0,0.08)',
+                borderRadius: 8,
+                background: '#FAFAF9',
+                maxWidth: 160,
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '0.04em', opacity: 0.7 }}>
+                  {step.n}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.3 }}>
+                  {step.titre}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--t3)', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.5 }}>
+                  {step.desc}
+                </span>
+              </div>
+              {i < 2 && (
+                <div style={{ alignSelf: 'center', padding: '0 6px', color: 'var(--t3)', fontSize: 14, opacity: 0.4 }}>›</div>
+              )}
+            </div>
           ))}
         </div>
-      </div>
+      )}
 
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--bd)' }}>
-        <button className="btn btn-sec" onClick={() => router.back()}>Annuler</button>
-        <button className="btn btn-pri" onClick={save} disabled={saving}>
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
+      {/* Actions — toujours sous le délimiteur (ou sous les étapes) */}
+      <div style={{ padding: '20px 32px 20px var(--page-left)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="btn btn-pri" onClick={() => router.push('/monarbre/nouveau')} style={{ fontSize: 13 }}>
+          Ajouter une personne
+        </button>
+        <button className="btn btn-sec" onClick={() => router.push('/monarbre/union/nouvelle')} style={{ fontSize: 13 }}>
+          Ajouter un mariage
+        </button>
+        <input ref={gedcomRef} type="file" accept=".ged,.gedcom" style={{ display: 'none' }} onChange={importGEDCOM} />
+        <button className="btn btn-sec" onClick={() => gedcomRef.current?.click()} style={{ fontSize: 13 }}>
+          Importer GEDCOM
         </button>
       </div>
+
+      {/* Barre de filtres */}
+      {myPersons.length > 0 && (
+        <div style={{
+          padding: '14px 32px 14px var(--page-left)',
+          borderBottom: '1px solid var(--bd)',
+          background: '#FAFAF9',
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+        }}>
+          {/* Recherche */}
+          <div className="exp-search" style={{ flex: 1, minWidth: 180, maxWidth: 280 }}>
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              value={searchQ}
+              onChange={e => setSearchQ(e.target.value)}
+              placeholder="Rechercher…"
+            />
+          </div>
+
+          {/* Vivants */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--t2)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={aliveOnly} onChange={e => setAliveOnly(e.target.checked)} />
+            En vie seulement
+          </label>
+
+          {/* Genre */}
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className={`f-pill${genreFilter === 'M' ? ' on' : ''}`} onClick={() => setGenreFilter(g => g === 'M' ? null : 'M')}>Hommes</button>
+            <button className={`f-pill${genreFilter === 'F' ? ' on' : ''}`} onClick={() => setGenreFilter(g => g === 'F' ? null : 'F')}>Femmes</button>
+          </div>
+
+          <span style={{ fontSize: 11, color: 'var(--t3)', marginLeft: 'auto' }}>
+            {filtered.length} / {myPersons.length}
+          </span>
+        </div>
+      )}
+
+      {/* Grille de personnes */}
+      {myPersons.length === 0 ? null : filtered.length === 0 ? (
+        <div style={{ padding: '60px 32px 60px var(--page-left)', fontSize: 13, color: 'var(--t3)' }}>
+          Aucun résultat pour cette recherche.
+        </div>
+      ) : (
+        <div className="folder-grid" style={{ padding: '28px 32px 28px var(--page-left)' }}>
+          {filtered.map(p => (
+            <PersonCard
+              key={p.id}
+              person={p}
+              onClick={() => router.push(`/monarbre/${p.id}`)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
