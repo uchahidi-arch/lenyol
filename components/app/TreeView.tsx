@@ -181,7 +181,6 @@ export default function TreeView({
   if (loading) {
     return (
       <div className="tree-wrapper open">
-        <button className="btn btn-sec tree-close-btn" onClick={onBack}>← Retour</button>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="spin" />
         </div>
@@ -192,11 +191,7 @@ export default function TreeView({
   if (!person) return null;
 
   return (
-    <div className="tree-wrapper open" style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 50,
-    }}>
+    <div className="tree-wrapper open">
       <style>{`
         @keyframes treeBlobFloat1 {
           0%, 100% { transform: translate(0, 0) scale(1); }
@@ -211,38 +206,6 @@ export default function TreeView({
           50%       { transform: translate(20px, 25px) scale(1.05); }
         }
       `}</style>
-
-      {/* Blobs décoratifs animés */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden',
-      }}>
-        <div style={{
-          position: 'absolute', top: '-80px', left: '-60px',
-          width: '320px', height: '320px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(163,201,126,0.22) 0%, transparent 70%)',
-          animation: 'treeBlobFloat1 9s ease-in-out infinite',
-        }} />
-        <div style={{
-          position: 'absolute', top: '30%', right: '-80px',
-          width: '280px', height: '280px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(106,45,79,0.12) 0%, transparent 70%)',
-          animation: 'treeBlobFloat2 13s ease-in-out infinite',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-60px', left: '35%',
-          width: '240px', height: '240px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(45,106,79,0.14) 0%, transparent 70%)',
-          animation: 'treeBlobFloat3 11s ease-in-out infinite',
-        }} />
-        <div style={{
-          position: 'absolute', top: '55%', left: '10%',
-          width: '180px', height: '180px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(200,189,160,0.3) 0%, transparent 70%)',
-          animation: 'treeBlobFloat2 15s ease-in-out infinite 2s',
-        }} />
-      </div>
-
-      <button className="btn btn-sec tree-close-btn" style={{ position: 'relative', zIndex: 2 }} onClick={onBack}>← Retour</button>
 
       <div className="tree-zone-inner" style={{ position: 'relative', zIndex: 1 }}>
         {/* ── PARENTS + GRANDS-PARENTS ── */}
@@ -510,36 +473,6 @@ export default function TreeView({
           )}
         </div>
 
-        {/* ── INFO STRIP ── */}
-        <InfoStrip person={person} unions={unions} canEdit={canEdit} onEdit={() => onEditPerson?.(person)} onAddUnion={() => onAddUnion?.(person.id)} />
-
-        {/* ── BANDEAU AJOUTÉ PAR ── */}
-        {(person.created_by_name || person.created_at) && (
-          <div style={{
-            borderTop: '1px solid #f0ede8',
-            padding: '16px 32px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            background: '#fafaf8',
-            fontSize: 13,
-            color: '#aaa',
-          }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%',
-              background: '#2d5a3d', color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, flexShrink: 0,
-            }}>
-              {(person.created_by_name?.[0] ?? 'U').toUpperCase()}
-            </div>
-            <span>
-              Arbre créé par{' '}
-              <strong style={{ color: '#555' }}>{person.created_by_name ?? 'Utilisateur'}</strong>
-              {person.created_at && ` · ${new Date(person.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`}
-            </span>
-          </div>
-        )}
       </div>
 
       {popover && (
@@ -707,15 +640,19 @@ function NodePopover({
 
   useLayoutEffect(() => {
     if (!ref.current) return;
-    const ph = ref.current.offsetHeight;
     const pw = ref.current.offsetWidth || 200;
-    const { left: rl, top: rt, bottom: rb, width: rw } = popover.triggerRect;
+    const ph = ref.current.offsetHeight;
+    const { left: rl, top: rt, right: rr, height: rh } = popover.triggerRect;
 
-    let left = rl + rw / 2 - pw / 2;
-    left = Math.max(8, Math.min(window.innerWidth - pw - 8, left));
+    // Droite si possible, sinon gauche
+    let left = rr + 8 + pw <= window.innerWidth - 8
+      ? rr + 8
+      : rl - pw - 8;
+    left = Math.max(8, left);
 
-    const spaceBelow = window.innerHeight - rb - 8;
-    const top = spaceBelow >= ph ? rb + 8 : Math.max(8, rt - ph - 8);
+    // Centré verticalement sur le nœud
+    let top = rt + rh / 2 - ph / 2;
+    top = Math.max(8, Math.min(window.innerHeight - ph - 8, top));
 
     setPos({ left, top });
   }, [popover]);

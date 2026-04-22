@@ -937,10 +937,10 @@ body {
 .pc-tag.status-dead { background: #F3F4F6; color: #6B7280; border: 1px solid #E5E7EB; }
 
 /* ── ARBRE PLEIN ÉCRAN ── */
-.tree-wrapper { position: fixed; inset: 0; display: none; flex-direction: column; z-index: 50; overflow: auto; -webkit-overflow-scrolling: touch; }
+.tree-wrapper { display: none; flex-direction: column; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .tree-wrapper.open { display: flex; }
-.tree-close-btn { position: sticky; top: 20px; left: 24px; z-index: 20; align-self: flex-start; margin: 20px 0 0 24px; flex-shrink: 0; }
-.tree-zone-inner { display: flex; flex-direction: column; align-items: center; min-width: max-content; padding: 16px 32px 80px; }
+.tree-close-btn { display: none; }
+.tree-zone-inner { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 16px 0 80px; overflow-x: auto; }
 
 /* ── TAGS ── */
 .f-pill { padding: 4px 10px; border-radius: 100px; font-size: 10px; font-weight: 600; background: var(--bg); border: 1px solid var(--bd); color: var(--t2); cursor: pointer; transition: .12s; }
