@@ -82,28 +82,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (
-    email: string,
-    password: string,
-    meta: { prenom: string; nom?: string; region?: string; username?: string; cgu_accepted?: boolean }
-  ): Promise<string | null> => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return error.message;
-    const userId = data?.user?.id || data?.session?.user?.id;
-    if (userId) {
-      const now = new Date().toISOString();
-      await supabase.from('profiles').insert([{
-        id: userId,
+  email: string,
+  password: string,
+  meta: { prenom: string; nom?: string; region?: string; username?: string; cgu_accepted?: boolean }
+): Promise<string | null> => {
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
         prenom: meta.prenom,
-        nom: meta.nom,
-        region: meta.region,
-        username: meta.username,
+        nom: meta.nom || null,
+        region: meta.region || null,
+        username: meta.username || null,
         cgu_accepted: meta.cgu_accepted ?? false,
-        cgu_accepted_at: meta.cgu_accepted ? now : null,
-      }]);
+      }
     }
-    return null;
-  };
-
+  });
+  if (error) return error.message;
+  return null;
+};
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
