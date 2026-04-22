@@ -47,8 +47,8 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
       setLocalite(p.localite || '');
       setRegion(p.region || '');
       setNaissLieu(p.naiss_lieu || '');
-      setNaissDate(p.naiss_date || '');
-      setDecesDate(p.deces_date || '');
+      setNaissDate(p.naiss_annee != null ? String(p.naiss_annee) : '');
+      setDecesDate(p.deces_annee != null ? String(p.deces_annee) : '');
       setMetier(p.metier || '');
       setNotes(p.notes || '');
       setEthnie((p as any).ethnie || '');
@@ -66,8 +66,8 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
         setLocalite(p.localite || '');
         setRegion(p.region || '');
         setNaissLieu(p.naiss_lieu || '');
-        setNaissDate(p.naiss_date || '');
-        setDecesDate(p.deces_date || '');
+        setNaissDate(p.naiss_annee != null ? String(p.naiss_annee) : '');
+        setDecesDate(p.deces_annee != null ? String(p.deces_annee) : '');
         setMetier(p.metier || '');
         setNotes(p.notes || '');
         setEthnie((p as any).ethnie || '');
@@ -91,8 +91,8 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
         localite: localite.trim(),
         region: (region || null) as RegionSenegal | null,
         naiss_lieu: naissLieu.trim(),
-        naiss_date: naissDate.trim(),
-        deces_date: status === 'dead' ? decesDate.trim() : '',
+        naiss_annee: naissDate.trim() ? parseInt(String(naissDate.trim())) : null,
+        deces_annee: status === 'dead' && decesDate.trim() ? parseInt(String(decesDate.trim())) : null,
         metier: metier.trim(),
         notes: notes.trim(),
         ethnie: ethnie as Ethnie || null

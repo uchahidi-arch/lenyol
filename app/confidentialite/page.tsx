@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import AboutNavWrapper from '@/components/home/AboutNavWrapper';
+import HomeFooter from '@/components/home/HomeFooter';
 
 const sections = [
   {
@@ -54,101 +55,105 @@ export default function ConfidentialitePage() {
   const [open, setOpen] = useState<number | null>(null);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg, #f8f7f4)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f9f9f7' }}>
+      <AboutNavWrapper />
 
-      {/* Contenu */}
-      <main style={{ flex: 1, maxWidth: '780px', margin: '0 auto', padding: '56px 32px 80px', width: '100%' }}>
+      <main style={{ flex: 1, paddingTop: '72px', paddingBottom: '120px' }}>
 
-        {/* Label */}
-        <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.12em', color: '#2d6a4f', marginBottom: '10px' }}>
-          Confidentialité
+        {/* En-tête */}
+        <div style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <div style={{ padding: '48px 32px 40px var(--page-left)' }}>
+            <h1 style={{
+              fontSize: 'clamp(26px, 4vw, 36px)',
+              fontWeight: 700,
+              fontFamily: "'Cormorant Garamond', serif",
+              color: 'var(--t1)',
+              lineHeight: 1.2,
+              margin: 0,
+              marginBottom: '12px',
+              letterSpacing: '-0.01em',
+            }}>
+              Confidentialité & données personnelles
+            </h1>
+            <p style={{
+              fontSize: '15px',
+              color: 'var(--t3)',
+              lineHeight: 1.7,
+              margin: 0,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 400,
+              maxWidth: '720px',
+            }}>
+              Lenyol préserve votre mémoire familiale. Nous prenons la protection de vos données avec le plus haut niveau de sérieux.
+            </p>
+          </div>
         </div>
 
-        {/* Titre */}
-        <h1 style={{ fontSize: '38px', fontWeight: 700, fontFamily: "'Cormorant Garamond', Georgia, serif", color: '#111', lineHeight: 1.15, margin: '0 0 12px' }}>
-          Vos données vous appartiennent.
-        </h1>
-
-        {/* Sous-titre */}
-        <p style={{ fontSize: '15px', color: '#666', lineHeight: 1.7, margin: '0 0 32px', maxWidth: '560px' }}>
-          Lenyol préserve votre mémoire familiale. Nous prenons la protection de vos données avec le plus haut niveau de sérieux.
-        </p>
-
-        {/* Barre */}
-        <div style={{ height: '1px', background: '#e0ddd6', marginBottom: '40px' }} />
-
         {/* Accordéon */}
-        {sections.map((s, i) => (
-          <div key={i} style={{ borderBottom: '1px solid #e0ddd6' }}>
-            <button
-              onClick={() => setOpen(open === i ? null : i)}
-              style={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '20px 0',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                textAlign: 'left',
-              }}
-            >
-              <span style={{ fontSize: '16px', fontWeight: 600, color: '#111', fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
-                {s.title}
-              </span>
-              <span style={{ fontSize: '20px', color: '#2d6a4f', fontWeight: 300, lineHeight: 1 }}>
-                {open === i ? '−' : '+'}
-              </span>
-            </button>
-            {open === i && (
-              <div style={{ padding: '0 0 24px', fontSize: '14px', color: '#444', lineHeight: 1.85, whiteSpace: 'pre-line' }}>
-                {s.content}
-              </div>
-            )}
-          </div>
-        ))}
+        <div style={{ maxWidth: '680px', padding: '40px 32px 0 var(--page-left)' }}>
+          {sections.map((s, i) => (
+            <div key={i} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <button
+                onClick={() => setOpen(open === i ? null : i)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  padding: '20px 0',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  color: 'var(--t1)',
+                  lineHeight: 1.4,
+                }}>
+                  {s.title}
+                </span>
+                <span style={{
+                  flexShrink: 0,
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--t3)',
+                  fontSize: '18px',
+                  lineHeight: 1,
+                  transition: 'transform .2s',
+                  transform: open === i ? 'rotate(45deg)' : 'none',
+                }}>
+                  +
+                </span>
+              </button>
 
-        {/* Bas de page */}
-        <div style={{ marginTop: '48px', fontSize: '12px', color: '#999', borderTop: '1px solid #e0ddd6', paddingTop: '24px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Dernière mise à jour : avril 2026</span>
-          <Link href="/" style={{ color: '#2d6a4f', textDecoration: 'none' }}>← Retour à l'accueil</Link>
+              {open === i && (
+                <p style={{
+                  margin: '0 0 20px',
+                  fontSize: '14px',
+                  lineHeight: 1.8,
+                  color: 'var(--t2)',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: 400,
+                  maxWidth: '560px',
+                  whiteSpace: 'pre-line',
+                }}>
+                  {s.content}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       </main>
 
-      {/* Footer */}
-      <footer style={{ background: '#0D1F17', padding: '48px 32px', color: '#a8c5a0' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '32px' }}>
-          <div style={{ maxWidth: '280px' }}>
-            <div style={{ fontSize: '20px', fontWeight: 700, fontFamily: "'Cormorant Garamond', Georgia, serif", color: '#a8c5a0', marginBottom: '12px' }}>Lenyol</div>
-            <p style={{ fontSize: '13px', color: '#6a8f72', lineHeight: 1.7, margin: 0 }}>
-              Préservez votre lignée. Transmettez votre histoire. La mémoire généalogique sénégalaise, pour les générations à venir.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '64px', flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: '#4a6e52', marginBottom: '16px' }}>Plateforme</div>
-              {['Mon Arbre', 'Registre', 'Griot & Racines'].map(l => (
-                <div key={l} style={{ marginBottom: '10px' }}>
-                  <Link href="/" style={{ fontSize: '14px', color: '#a8c5a0', textDecoration: 'none' }}>{l}</Link>
-                </div>
-              ))}
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: '#4a6e52', marginBottom: '16px' }}>Informations</div>
-              {['À propos', 'Confidentialité', 'Comment ça marche'].map(l => (
-                <div key={l} style={{ marginBottom: '10px' }}>
-                  <Link href="/" style={{ fontSize: '14px', color: '#a8c5a0', textDecoration: 'none' }}>{l}</Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div style={{ maxWidth: '1200px', margin: '32px auto 0', borderTop: '1px solid #1a3a22', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#4a6e52' }}>
-          <span>© 2026 Lenyol · Développé par U-Data</span>
-          <Link href="/confidentialite" style={{ color: '#4a6e52', textDecoration: 'none' }}>Politique de confidentialité</Link>
-        </div>
-      </footer>
+      <HomeFooter />
     </div>
   );
 }

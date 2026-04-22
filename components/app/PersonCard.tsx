@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import type { Person } from '@/lib/types';
 
 interface PersonCardProps {
@@ -16,6 +17,7 @@ function initials(p: Person) {
 
 export default function PersonCard({ person, onClick, bulkMode, selected, onSelect }: PersonCardProps) {
   const p = person;
+  const router = useRouter();
 
   return (
     <div
@@ -35,19 +37,26 @@ export default function PersonCard({ person, onClick, bulkMode, selected, onSele
 
       {/* Localisation — en haut de la carte */}
       {(p.region || p.localite) && (
-        <div style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '4px',
-          marginBottom: '10px',
-          fontSize: '9px',
-          fontWeight: 600,
-          color: 'var(--t3)',
-          textTransform: 'uppercase',
-          letterSpacing: '.06em',
-        }}>
+        <div
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            marginBottom: '10px',
+            fontSize: '9px',
+            fontWeight: 600,
+            color: 'var(--t3)',
+            textTransform: 'uppercase',
+            letterSpacing: '.06em',
+            cursor: p.region ? 'pointer' : 'default',
+          }}
+          onClick={p.region ? (e) => {
+            e.stopPropagation();
+            router.push(`/registre/${p.region!.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-')}`);
+          } : undefined}
+        >
           <svg width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
             <circle cx="12" cy="9" r="2.5"/>
@@ -69,10 +78,10 @@ export default function PersonCard({ person, onClick, bulkMode, selected, onSele
       {p.nom && <div className="pc-nom">{p.nom}</div>}
 
       {/* Dates */}
-      {(p.naiss_date || p.deces_date) && (
+      {(p.naiss_annee || p.deces_annee) && (
         <div style={{ fontSize: '9px', color: 'var(--t3)', marginTop: '3px' }}>
-          {p.naiss_date ? p.naiss_date.slice(0, 4) : '?'}
-          {p.deces_date ? ` — ${p.deces_date.slice(0, 4)}` : ''}
+          {p.naiss_annee ? String(p.naiss_annee) : '?'}
+          {p.deces_annee ? ` — ${p.deces_annee}` : ''}
         </div>
       )}
 
@@ -95,7 +104,15 @@ export default function PersonCard({ person, onClick, bulkMode, selected, onSele
 
         {/* Ethnie */}
         {p.ethnie && (
-          <span className="pc-tag" style={{ background: '#EDE9FE', color: '#5B21B6', border: '1px solid #DDD6FE' }}>
+          <span
+            className="pc-tag"
+            style={{ background: '#EDE9FE', color: '#5B21B6', border: '1px solid #DDD6FE', cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              const slug = p.ethnie!.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-');
+              router.push(`/registre/${slug}`);
+            }}
+          >
             {p.ethnie}
           </span>
         )}

@@ -4,7 +4,15 @@ import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PersonView from './_PersonView';
 
-// Slug court → nom complet de la région sénégalaise (même mapping que RegistreView)
+const SLUG_TO_ETHNIE: Record<string, string> = {
+  wolof:       'Wolof',
+  peul:        'Peul',
+  serere:      'Sérère',
+  mandingue:   'Mandingue',
+  toucouleur:  'Toucouleur',
+  diola:       'Diola',
+};
+
 const SLUG_TO_REGION: Record<string, string> = {
   dakar:         'Dakar',
   thies:         'Thiès',
@@ -23,63 +31,56 @@ const SLUG_TO_REGION: Record<string, string> = {
   touba:         'Touba',
 };
 
-const REGION_META: Record<string, { accent: string; nameSenegalais: string }> = {
-  'Dakar':       { accent: '#1a3d2e', nameSenegalais: 'Dakar'       },
-  'Thiès':       { accent: '#3d1a1a', nameSenegalais: 'Thiès'       },
-  'Diourbel':    { accent: '#1a2e3d', nameSenegalais: 'Diourbel'    },
-  'Fatick':      { accent: '#2e1a3d', nameSenegalais: 'Fatick'      },
-  'Kaolack':     { accent: '#1a3d2e', nameSenegalais: 'Kaolack'     },
-  'Saint-Louis': { accent: '#3d1a1a', nameSenegalais: 'Saint-Louis' },
-  'Louga':       { accent: '#1a2e3d', nameSenegalais: 'Louga'       },
-  'Ziguinchor':  { accent: '#2e1a3d', nameSenegalais: 'Ziguinchor'  },
-  'Kolda':       { accent: '#1a3d2e', nameSenegalais: 'Kolda'       },
-  'Tambacounda': { accent: '#3d1a1a', nameSenegalais: 'Tambacounda' },
-  'Matam':       { accent: '#1a2e3d', nameSenegalais: 'Matam'       },
-  'Kédougou':    { accent: '#2e1a3d', nameSenegalais: 'Kédougou'    },
-  'Kaffrine':    { accent: '#1a3d2e', nameSenegalais: 'Kaffrine'    },
-  'Sédhiou':     { accent: '#3d1a1a', nameSenegalais: 'Sédhiou'     },
-  'Touba':       { accent: '#1a2e3d', nameSenegalais: 'Touba'       },
+const REGION_META: Record<string, { accent: string }> = {
+  'Dakar':       { accent: '#1a3d2e' },
+  'Thiès':       { accent: '#3d1a1a' },
+  'Diourbel':    { accent: '#1a2e3d' },
+  'Fatick':      { accent: '#2e1a3d' },
+  'Kaolack':     { accent: '#1a3d2e' },
+  'Saint-Louis': { accent: '#3d1a1a' },
+  'Louga':       { accent: '#1a2e3d' },
+  'Ziguinchor':  { accent: '#2e1a3d' },
+  'Kolda':       { accent: '#1a3d2e' },
+  'Tambacounda': { accent: '#3d1a1a' },
+  'Matam':       { accent: '#1a2e3d' },
+  'Kédougou':    { accent: '#2e1a3d' },
+  'Kaffrine':    { accent: '#1a3d2e' },
+  'Sédhiou':     { accent: '#3d1a1a' },
+  'Touba':       { accent: '#1a2e3d' },
 };
 
-function slugify(str: string) {
-  return str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[()]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+interface PersonRow {
+  id: string;
+  prenom: string | null;
+  nom: string | null;
+  ethnie: string | null;
+  region: string | null;
+  localite: string | null;
+  naiss_annee: number | null;
+  deces_annee: number | null;
+  deceased: boolean | null;
 }
-
-interface LocaliteRow { departement: string; localite: string }
 
 function RegionView({ regionSlug }: { regionSlug: string }) {
   const router     = useRouter();
   const regionName = SLUG_TO_REGION[regionSlug];
-  const meta       = REGION_META[regionName] ?? { accent: '#2e2e2e', nameSenegalais: '' };
+  const meta       = REGION_META[regionName] ?? { accent: '#2e2e2e' };
 
-  const [rows, setRows]       = useState<LocaliteRow[]>([]);
+  const [persons, setPersons] = useState<PersonRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     import('@/lib/supabase').then(async ({ supabase }) => {
       const { data } = await supabase
-        .from('localites')
-        .select('departement, localite')
+        .from('persons')
+        .select('id, prenom, nom, ethnie, region, localite, naiss_annee, deces_annee, deceased')
         .eq('region', regionName)
-        .order('departement', { ascending: true });
-      setRows((data ?? []) as LocaliteRow[]);
+        .eq('masque', false)
+        .order('nom', { ascending: true });
+      setPersons((data ?? []) as PersonRow[]);
       setLoading(false);
     });
   }, [regionName]);
-
-  // Grouper par département pour compter les localités
-  const byDepartement: [string, number][] = Object.entries(
-    rows.reduce<Record<string, number>>((acc, { departement }) => {
-      acc[departement] = (acc[departement] ?? 0) + 1;
-      return acc;
-    }, {})
-  );
 
   return (
     <div style={{ position: 'relative', flex: 1, width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -98,9 +99,11 @@ function RegionView({ regionSlug }: { regionSlug: string }) {
             <span className="bc-sep-v2">›</span>
             <span className="bc-current-v2">{regionName}</span>
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--t3)', fontStyle: 'italic' }}>
-            {meta.nameSenegalais}
-          </span>
+          {!loading && (
+            <span style={{ fontSize: '11px', color: 'var(--t3)', fontStyle: 'italic' }}>
+              {persons.length} personne{persons.length !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
         {/* Contenu */}
@@ -110,49 +113,170 @@ function RegionView({ regionSlug }: { regionSlug: string }) {
               <div className="spin" style={{ width: '24px', height: '24px', borderWidth: '2px' }} />
             </div>
           </div>
-        ) : byDepartement.length === 0 ? (
-          <div className="empty-grid">Aucun département enregistré pour cette région.</div>
+        ) : persons.length === 0 ? (
+          <div className="empty-grid">Aucune personne enregistrée pour cette région.</div>
         ) : (
-          <div style={{ overflowY: 'auto', flex: 1, padding: '24px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
-              {byDepartement.map(([dep, count]) => (
-                <div
-                  key={dep}
-                  className="fadein"
-                  onClick={() => router.push(`/registre/${regionSlug}/${slugify(dep)}`)}
-                  style={{
-                    background: 'rgba(255,255,255,0.75)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255,255,255,0.6)',
-                    borderRadius: '20px',
-                    padding: '20px 16px',
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                    boxShadow: '0 4px 20px rgba(20,18,13,0.08)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '10px',
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)';
-                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 10px 28px rgba(20,18,13,0.14)';
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
-                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 20px rgba(20,18,13,0.08)';
-                  }}
-                >
-                  <span style={{ fontSize: '32px', lineHeight: 1 }}>📍</span>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: meta.accent, textAlign: 'center', lineHeight: 1.3 }}>
-                    {dep}
-                  </span>
-                  <span style={{ fontSize: '11px', color: 'var(--t3)' }}>
-                    {count} localité{count > 1 ? 's' : ''}
-                  </span>
-                </div>
-              ))}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 32px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {[
+                    { label: 'Nom / Prénom',      width: '34%' },
+                    { label: 'Ethnie',             width: '18%' },
+                    { label: 'Région / Localité',  width: '28%' },
+                    { label: 'Naissance – Décès',  width: '20%' },
+                  ].map(({ label, width }) => (
+                    <th
+                      key={label}
+                      style={{
+                        width,
+                        padding: '10px 12px',
+                        textAlign: 'left',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: 'var(--t3)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.07em',
+                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        borderBottom: '2px solid var(--bd)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {persons.map((p, i) => (
+                  <tr
+                    key={p.id}
+                    onClick={() => router.push(`/registre/${p.id}`)}
+                    style={{
+                      background: i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLTableRowElement).style.background =
+                        i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent';
+                    }}
+                  >
+                    <td style={{ padding: '11px 12px', fontSize: '14px', fontWeight: 600, color: meta.accent, fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      {p.prenom} {p.nom?.toUpperCase()}
+                    </td>
+                    <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      {p.ethnie || <span style={{ color: 'var(--t3)' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      {[p.region, p.localite].filter(Boolean).join(', ') || <span style={{ color: 'var(--t3)' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      {p.naiss_annee ?? '?'}
+                      {p.deceased && ` – ${p.deces_annee ?? '†'}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EthnieView({ ethnieLabel }: { ethnieLabel: string }) {
+  const router = useRouter();
+  const [persons, setPersons] = useState<PersonRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    import('@/lib/supabase').then(async ({ supabase }) => {
+      const { data } = await supabase
+        .from('persons')
+        .select('id, prenom, nom, ethnie, region, localite, naiss_annee, deces_annee, deceased')
+        .eq('ethnie', ethnieLabel)
+        .eq('masque', false)
+        .order('nom', { ascending: true });
+      setPersons((data ?? []) as PersonRow[]);
+      setLoading(false);
+    });
+  }, [ethnieLabel]);
+
+  return (
+    <div style={{ position: 'relative', flex: 1, width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div className="view-section" style={{ flex: 1, background: 'transparent', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        <div className="explorer-topbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flex: 1 }}>
+            <span className="bc-item-v2" style={{ cursor: 'pointer' }} onClick={() => router.push('/registre')}>
+              Registre
+            </span>
+            <span className="bc-sep-v2">›</span>
+            <span className="bc-current-v2">{ethnieLabel}</span>
+          </div>
+          {!loading && (
+            <span style={{ fontSize: '11px', color: 'var(--t3)', fontStyle: 'italic' }}>
+              {persons.length} personne{persons.length !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="folder-grid">
+            <div className="empty-grid">
+              <div className="spin" style={{ width: '24px', height: '24px', borderWidth: '2px' }} />
             </div>
+          </div>
+        ) : persons.length === 0 ? (
+          <div className="empty-grid">Aucune personne enregistrée pour cette ethnie.</div>
+        ) : (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 32px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {[
+                    { label: 'Nom / Prénom',      width: '34%' },
+                    { label: 'Ethnie',             width: '18%' },
+                    { label: 'Région / Localité',  width: '28%' },
+                    { label: 'Naissance – Décès',  width: '20%' },
+                  ].map(({ label, width }) => (
+                    <th key={label} style={{ width, padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '2px solid var(--bd)', whiteSpace: 'nowrap' }}>
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {persons.map((p, i) => (
+                  <tr
+                    key={p.id}
+                    onClick={() => router.push(`/registre/${p.id}`)}
+                    style={{ background: i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent', cursor: 'pointer', transition: 'background 0.12s' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent'; }}
+                  >
+                    <td style={{ padding: '11px 12px', fontSize: '14px', fontWeight: 600, color: '#1a3d2e', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      {p.prenom} {p.nom?.toUpperCase()}
+                    </td>
+                    <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      {p.ethnie || <span style={{ color: 'var(--t3)' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      {[p.region, p.localite].filter(Boolean).join(', ') || <span style={{ color: 'var(--t3)' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      {p.naiss_annee ?? '?'}
+                      {p.deceased && ` – ${p.deces_annee ?? '†'}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -163,9 +287,8 @@ function RegionView({ regionSlug }: { regionSlug: string }) {
 export default function Page({ params }: { params: Promise<{ region: string }> }) {
   const { region } = use(params);
 
-  // Slug connu → vue région
   if (SLUG_TO_REGION[region]) return <RegionView regionSlug={region} />;
+  if (SLUG_TO_ETHNIE[region]) return <EthnieView ethnieLabel={SLUG_TO_ETHNIE[region]} />;
 
-  // Sinon c'est un UUID de personne
   return <PersonView id={region} />;
 }

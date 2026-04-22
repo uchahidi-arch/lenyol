@@ -1,8 +1,10 @@
 interface ContributionProps {
   onOpenAuth: (tab: 'login' | 'signup') => void;
+  isLoggedIn?: boolean;
+  onGoToTree?: () => void;
 }
 
-export default function Contribution({ onOpenAuth }: ContributionProps) {
+export default function Contribution({ onOpenAuth, isLoggedIn, onGoToTree }: ContributionProps) {
   return (
     <section className="lnu-contrib" id="contribution">
       <div className="lnu-contrib-inner">
@@ -17,16 +19,16 @@ export default function Contribution({ onOpenAuth }: ContributionProps) {
         </div>
 
         <div className="lnu-contrib-actions">
-          <button className="lnu-contrib-btn-pri" onClick={() => onOpenAuth('signup')}>
+          <button className="lnu-contrib-btn-pri" onClick={() => isLoggedIn ? onGoToTree?.() : onOpenAuth('signup')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             Ajouter une personne
           </button>
-          <button className="lnu-contrib-btn-sec" onClick={() => onOpenAuth('signup')}>
+          <button className="lnu-contrib-btn-sec" onClick={() => isLoggedIn ? onGoToTree?.() : onOpenAuth('signup')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              <path d="M12 3v7"/><path d="M12 10c-2.5 0-5 1.5-5 4v4"/><path d="M12 10c2.5 0 5 1.5 5 4v4"/>
+              <circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/><circle cx="12" cy="3" r="2"/>
             </svg>
             Créer une famille
           </button>

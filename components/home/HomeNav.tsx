@@ -132,16 +132,6 @@ export default function HomeNav({ onNavigateToApp, onOpenAuth }: HomeNavProps) {
 
         {/* Right actions */}
         <div className="ln-actions">
-          <button
-            className="ln-search-icon-btn"
-            onClick={() => setSearchOpen(true)}
-            aria-label="Rechercher"
-          >
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-          </button>
-
           {!user ? (
             <>
               <button className="ln-btn-login" onClick={() => onOpenAuth('login')}>Se connecter</button>

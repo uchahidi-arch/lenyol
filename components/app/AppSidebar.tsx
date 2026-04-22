@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSidebar } from '@/hooks/useSidebar';
 import { useAppState } from '@/hooks/useAppState';
@@ -131,6 +131,15 @@ export default function AppSidebar({ registreCbs, racinesCbs }: Props) {
   const router = useRouter();
   const { state } = useAppState();
 
+  const [isDesktop, setIsDesktop] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const [checkedEthnies, setCheckedEthnies] = useState<Set<string>>(new Set());
   const [checkedRegions, setCheckedRegions] = useState<Set<string>>(new Set());
@@ -232,8 +241,9 @@ export default function AppSidebar({ registreCbs, racinesCbs }: Props) {
 
       <aside style={{
         width: isOpen ? '192px' : '0px',
-        flexShrink: 0,
-        position: 'sticky',
+        flexShrink: isDesktop ? 0 : undefined,
+        position: isDesktop ? 'sticky' : 'fixed',
+        left: isDesktop ? undefined : 0,
         top: '72px',
         height: 'calc(100vh - 72px)',
         overflow: 'hidden',

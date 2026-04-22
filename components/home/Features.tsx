@@ -198,7 +198,6 @@ export default function Features() {
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
-
     el.scrollLeft = 0;
     el.addEventListener('scroll', updateButtons, { passive: true });
     updateButtons();
@@ -259,7 +258,10 @@ export default function Features() {
           ))}
         </div>
 
-        {/* Fondu droit pour signaler le scroll */}
+        {/* Mur gauche — visible seulement quand on a scrollé */}
+        <div className="lnf-fade-left" style={{ opacity: canPrev ? 1 : 0 }} />
+
+        {/* Mur droit permanent */}
         <div className="lnf-fade-right" />
       </div>
     </section>

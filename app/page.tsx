@@ -4,15 +4,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import HomeNav from '@/components/home/HomeNav';
 import Hero from '@/components/home/Hero';
-import StatsBar from '@/components/home/StatsBar';
 import Features from '@/components/home/Features';
 import GriotSection from '@/components/home/GriotSection';
 import Contribution from '@/components/home/Contribution';
 import HomeFooter from '@/components/home/HomeFooter';
 import AuthModal from '@/components/auth/AuthModal';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function HomePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
 
@@ -27,10 +28,9 @@ export default function HomePage() {
     <>
       <HomeNav onNavigateToApp={goToApp} onOpenAuth={openAuth} />
       <Hero onNavigateToApp={goToApp} onOpenAuth={openAuth} />
-      <StatsBar />
       <Features />
       <GriotSection />
-      <Contribution onOpenAuth={openAuth} />
+      <Contribution onOpenAuth={openAuth} isLoggedIn={!!user} onGoToTree={() => router.push('/monarbre')} />
       <HomeFooter />
       <AuthModal open={authOpen} initialTab={authTab} onClose={() => setAuthOpen(false)} />
     </>

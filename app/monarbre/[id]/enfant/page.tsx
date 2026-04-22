@@ -73,8 +73,8 @@ export default function AjouterEnfantPage({ params }: { params: Promise<{ id: st
         localite: localite.trim(),
         region: (region || null) as RegionSenegal | null,
         naiss_lieu: naissLieu.trim(),
-        naiss_date: naissDate.trim(),
-        deces_date: status === 'dead' ? decesDate.trim() : '',
+        naiss_annee: naissDate.trim() ? parseInt(String(naissDate.trim())) : null,
+        deces_annee: status === 'dead' && decesDate.trim() ? parseInt(String(decesDate.trim())) : null,
         metier: metier.trim(),
         notes: notes.trim(),
       });

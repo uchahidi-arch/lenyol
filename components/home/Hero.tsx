@@ -68,7 +68,7 @@ export default function Hero({ onNavigateToApp }: HeroProps) {
         lineHeight: 1.6,
         marginBottom: '40px',
       }}>
-        Explorez le registre des familles sénégalaises et découvrez les liens entre les lignées.
+        Lenyol rassemble 12 450 personnes issues de 3 200 familles, documentées dans 87 localités à travers 14 régions du Sénégal.
       </p>
 
       {/* Search block */}

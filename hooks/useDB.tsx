@@ -205,6 +205,17 @@ export function useDB() {
     state.setAllPersons(state.allPersons.filter(p => p.id !== id));
   }, [state]);
 
+  const deleteTree = useCallback(async (): Promise<void> => {
+    if (!user) throw new Error('Non connecté');
+    await supabase.from('unions').delete().eq('owner_id', user.id);
+    await supabase.from('persons').delete().eq('owner_id', user.id);
+    state.setMyPersons([]);
+    state.setMyUnions([]);
+    state.setAllPersons(state.allPersons.filter(p => p.owner_id !== user.id));
+    state.setAllUnions(state.allUnions.filter(u => u.owner_id !== user.id));
+    showToast('Votre arbre a été supprimé.', 'success');
+  }, [user, state, showToast]);
+
   const addUnion = useCallback(async (d: Partial<Union>): Promise<Union> => {
     if (!user) throw new Error('Non connecté');
     const row = { ...d, owner_id: user.id, created_by: user.id, created_by_name: displayName };
@@ -244,8 +255,8 @@ export function useDB() {
     let ged = '0 HEAD\n1 GEDC\n2 VERS 5.5.1\n1 CHAR UTF-8\n';
     state.myPersons.forEach(p => {
       ged += `0 @I${p.id}@ INDI\n1 NAME ${p.prenom || ''} /${p.nom || ''}/\n1 SEX ${p.genre === 'F' ? 'F' : 'M'}\n`;
-      if (p.naiss_date) ged += `1 BIRT\n2 DATE ${p.naiss_date}\n`;
-      if (p.deceased && p.deces_date) ged += `1 DEAT\n2 DATE ${p.deces_date}\n`;
+      if (p.naiss_annee) ged += `1 BIRT\n2 DATE ${p.naiss_annee}\n`;
+      if (p.deceased && p.deces_annee) ged += `1 DEAT\n2 DATE ${p.deces_annee}\n`;
     });
     state.myUnions.forEach(u => {
       ged += `0 @F${u.id}@ FAM\n`;
@@ -286,10 +297,161 @@ export function useDB() {
   }, [addPerson, loadMyData]);
 
   const importGEDCOM = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    // GEDCOM import is complex — show a toast for now
-    showToast('Import GEDCOM bientôt disponible.', 'info');
-    e.target.value = '';
-  }, []);
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    try {
+      const text = ev.target?.result as string;
+      const lines = text.split(/\r?\n/);
+
+      // ── 1. PARSE ──
+      type GedIndi = {
+        gedId: string;
+        prenom: string;
+        nom: string;
+        genre: 'M' | 'F';
+        deceased: boolean;
+        naiss_annee?: number | null;
+        deces_annee?: number | null;
+        localite?: string | null;
+        naiss_lieu?: string | null;
+        notes?: string | null;
+      };
+      type GedFam = {
+        gedId: string;
+        husbId?: string;
+        wifeId?: string;
+        childIds: string[];
+      };
+
+      const indis: GedIndi[] = [];
+      const fams: GedFam[] = [];
+
+      let curIndi: GedIndi | null = null;
+      let curFam: GedFam | null = null;
+      let curTag = '';
+
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) continue;
+        const parts = line.split(' ');
+        const level = parseInt(parts[0]);
+        const second = parts[1];
+        const rest = parts.slice(2).join(' ');
+
+        if (level === 0) {
+          if (curIndi) indis.push(curIndi);
+          if (curFam) fams.push(curFam);
+          curIndi = null;
+          curFam = null;
+          curTag = '';
+
+          if (second?.startsWith('@') && rest === 'INDI') {
+            curIndi = {
+              gedId: second,
+              prenom: '',
+              nom: '',
+              genre: 'M',
+              deceased: false,
+            };
+          } else if (second?.startsWith('@') && rest === 'FAM') {
+            curFam = { gedId: second, childIds: [] };
+          }
+          continue;
+        }
+
+        if (curIndi) {
+          if (level === 1 && second === 'NAME') {
+            const nameParts = rest.split('/');
+            curIndi.prenom = nameParts[0]?.trim() || '';
+            curIndi.nom = nameParts[1]?.trim() || '';
+            curTag = 'NAME';
+          } else if (level === 1 && second === 'SEX') {
+            curIndi.genre = rest === 'F' ? 'F' : 'M';
+          } else if (level === 1 && (second === 'BIRT' || second === 'DEAT')) {
+            curTag = second;
+          } else if (level === 1 && second === 'DEAT' && rest && rest !== 'Y') {
+            curTag = 'DEAT';
+          } else if (level === 1 && second === 'DEAT') {
+            curIndi.deceased = true;
+            curTag = 'DEAT';
+          } else if (level === 1 && second === 'NOTE') {
+            curIndi.notes = rest || null;
+            curTag = 'NOTE';
+          } else if (level === 2 && second === 'DATE') {
+            const year = rest.match(/\d{4}/)?.[0];
+            if (year) {
+              if (curTag === 'BIRT') curIndi.naiss_annee = parseInt(year);
+              if (curTag === 'DEAT') {
+                curIndi.deces_annee = parseInt(year);
+                curIndi.deceased = true;
+              }
+            }
+          } else if (level === 2 && second === 'PLAC') {
+            if (curTag === 'BIRT') curIndi.naiss_lieu = rest || null;
+          } else if (level === 2 && second === 'CONT' && curTag === 'NOTE') {
+            curIndi.notes = (curIndi.notes || '') + '\n' + rest;
+          }
+        }
+
+        if (curFam) {
+          if (level === 1 && second === 'HUSB') curFam.husbId = rest.replace(/@/g, '');
+          if (level === 1 && second === 'WIFE') curFam.wifeId = rest.replace(/@/g, '');
+          if (level === 1 && second === 'CHIL') curFam.childIds.push(rest.replace(/@/g, ''));
+        }
+      }
+      if (curIndi) indis.push(curIndi);
+      if (curFam) fams.push(curFam);
+
+      if (indis.length === 0) throw new Error('Aucune personne trouvée dans le fichier GEDCOM');
+
+      setLoading(true);
+
+      // ── 2. INSERT PERSONS ──
+      const gedToDbId: Record<string, string> = {};
+      for (const indi of indis) {
+        const gedIdClean = indi.gedId.replace(/@/g, '');
+        const p = await addPerson({
+          prenom: indi.prenom || '?',
+          nom: indi.nom || '',
+          genre: indi.genre,
+          deceased: indi.deceased,
+          naiss_annee: indi.naiss_annee ?? null,
+          deces_annee: indi.deces_annee ?? null,
+          naiss_lieu: indi.naiss_lieu ?? null,
+          notes: indi.notes ?? null,
+        });
+        gedToDbId[gedIdClean] = p.id;
+      }
+
+      // ── 3. INSERT UNIONS ──
+      for (const fam of fams) {
+        const pereId = fam.husbId ? gedToDbId[fam.husbId] ?? null : null;
+        const mereId = fam.wifeId ? gedToDbId[fam.wifeId] ?? null : null;
+        const enfantsIds = fam.childIds
+          .map(cid => gedToDbId[cid])
+          .filter(Boolean) as string[];
+
+        if (pereId || mereId || enfantsIds.length > 0) {
+          await addUnion({
+            pere_id: pereId,
+            mere_id: mereId,
+            enfants_ids: enfantsIds,
+          });
+        }
+      }
+
+      await loadMyData();
+      showToast(`${indis.length} personnes importées depuis GEDCOM ✓`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur import GEDCOM', 'error');
+    }
+    setLoading(false);
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}, [addPerson, addUnion, loadMyData, setLoading, showToast]);
 
   return {
     state,
@@ -308,6 +470,7 @@ export function useDB() {
     propagateMaternalLineage,
     toggleMasque,
     deletePerson,
+    deleteTree,
     addUnion,
     updateUnion,
     deleteUnion,

@@ -153,6 +153,16 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
   // ── Filtre local (dans les listes par région/lenyol)
   const [filterQ, setFilterQ] = useState('');
 
+  // ── Vue cartes / liste
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'list';
+    return (localStorage.getItem('registre-view') as 'cards' | 'list') ?? 'list';
+  });
+  const handleViewChange = (mode: 'cards' | 'list') => {
+    setViewMode(mode);
+    localStorage.setItem('registre-view', mode);
+  };
+
   // ── Liste tabulaire (tri + pagination)
   const [sortCol, setSortCol] = useState<'nom' | 'ethnie' | 'localite' | 'naiss'>('nom');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -267,7 +277,17 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
     if (label === '__sans__') {
       const field = tab === 'nom' ? 'nom' : tab === 'ethnie' ? 'ethnie' : 'clan';
       const { data: raw } = await import('@/lib/supabase').then(m =>
-        m.supabase.from('persons').select('*').is(field, null).limit(300)
+        m.supabase.from('persons').select('*').is(field, null).neq('masque', true).limit(300)
+      );
+      data = (raw || []) as Person[];
+    } else if (tab === 'ethnie') {
+      const { data: raw } = await import('@/lib/supabase').then(m =>
+        m.supabase.from('persons').select('*').eq('ethnie', label).eq('masque', false).order('nom', { ascending: true })
+      );
+      data = (raw || []) as Person[];
+    } else if (tab === 'nom') {
+      const { data: raw } = await import('@/lib/supabase').then(m =>
+        m.supabase.from('persons').select('*').eq('nom', label).eq('masque', false).order('prenom', { ascending: true })
       );
       data = (raw || []) as Person[];
     } else {
@@ -334,8 +354,10 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
     setTab('ethnie');
     setStep('persons');
     setLoading(true);
-    const data = await fetchByClan(name);
-    setPersons(data);
+    const { data } = await import('@/lib/supabase').then(m =>
+      m.supabase.from('persons').select('*').eq('ethnie', name).eq('masque', false).order('nom', { ascending: true })
+    );
+    setPersons((data || []) as Person[]);
     setFilterQ('');
     setLoading(false);
   };
@@ -374,7 +396,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
     if (sortCol === 'nom') { va = ((a.nom || '') + (a.prenom || '')).toLowerCase(); vb = ((b.nom || '') + (b.prenom || '')).toLowerCase(); }
     else if (sortCol === 'ethnie') { va = (a.ethnie || '').toLowerCase(); vb = (b.ethnie || '').toLowerCase(); }
     else if (sortCol === 'localite') { va = ((a.region || '') + (a.localite || '')).toLowerCase(); vb = ((b.region || '') + (b.localite || '')).toLowerCase(); }
-    else if (sortCol === 'naiss') { va = extractYear(a.naiss_date) || '0'; vb = extractYear(b.naiss_date) || '0'; }
+    else if (sortCol === 'naiss') { va = String(a.naiss_annee ?? 0); vb = String(b.naiss_annee ?? 0); }
     const cmp = va < vb ? -1 : va > vb ? 1 : 0;
     return sortDir === 'asc' ? cmp : -cmp;
   });
@@ -429,26 +451,99 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
   if (searchQ && searchQ.trim().length >= 2) {
     return (
       <div className="view-section">
-        <div className="folder-grid">
-          {searching ? (
+        {/* Toggle vue dans la barre de recherche */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 20px 0', gap: '2px' }}>
+          <button
+            title="Vue cartes"
+            onClick={() => handleViewChange('cards')}
+            style={{
+              width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '6px', border: '1px solid var(--bd)', cursor: 'pointer',
+              background: viewMode === 'cards' ? 'var(--green-bg)' : 'transparent',
+              color: viewMode === 'cards' ? 'var(--green)' : 'var(--t3)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+              <rect x="0" y="0" width="5.5" height="5.5" rx="1"/><rect x="7.5" y="0" width="5.5" height="5.5" rx="1"/>
+              <rect x="0" y="7.5" width="5.5" height="5.5" rx="1"/><rect x="7.5" y="7.5" width="5.5" height="5.5" rx="1"/>
+            </svg>
+          </button>
+          <button
+            title="Vue liste"
+            onClick={() => handleViewChange('list')}
+            style={{
+              width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '6px', border: '1px solid var(--bd)', cursor: 'pointer',
+              background: viewMode === 'list' ? 'var(--green-bg)' : 'transparent',
+              color: viewMode === 'list' ? 'var(--green)' : 'var(--t3)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+              <rect x="0" y="0" width="13" height="2.5" rx="1"/><rect x="0" y="5" width="13" height="2.5" rx="1"/>
+              <rect x="0" y="10" width="13" height="2.5" rx="1"/>
+            </svg>
+          </button>
+        </div>
+
+        {searching ? (
+          <div className="folder-grid">
             <div className="empty-grid"><div className="spin" style={{ width: 24, height: 24, borderWidth: 2 }} /></div>
-          ) : searchResults.length === 0 ? (
+          </div>
+        ) : searchResults.length === 0 ? (
+          <div className="folder-grid">
             <div className="empty-grid" style={{ flexDirection: 'column', gap: '24px' }}>
               <span>Aucun résultat pour « {searchQ} ».</span>
               {!user && (
-                <button
-                  className="btn-hero btn-hero-p"
-                  style={{ fontSize: '16px', padding: '14px 32px' }}
-                  onClick={() => onOpenAuth('signup')}
-                >
+                <button className="btn-hero btn-hero-p" style={{ fontSize: '16px', padding: '14px 32px' }} onClick={() => onOpenAuth('signup')}>
                   🌿 Créez votre famille
                 </button>
               )}
             </div>
-          ) : searchResults.map(p => (
-            <PersonCard key={p.id} person={p} onClick={() => onShowPerson(p)} />
-          ))}
-        </div>
+          </div>
+        ) : viewMode === 'cards' ? (
+          <div className="folder-grid">
+            {searchResults.map(p => (
+              <PersonCard key={p.id} person={p} onClick={() => onShowPerson(p)} />
+            ))}
+          </div>
+        ) : (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 32px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {([
+                    { key: 'nom',      label: 'Nom / Prénom',      width: '34%' },
+                    { key: 'ethnie',   label: 'Ethnie',             width: '20%' },
+                    { key: 'localite', label: 'Région / Localité',  width: '26%' },
+                    { key: 'naiss',    label: 'Naissance – Décès',  width: '20%' },
+                  ] as { key: typeof sortCol; label: string; width: string }[]).map(({ key, label, width }) => (
+                    <th key={key} style={{ width, padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '2px solid var(--bd)', whiteSpace: 'nowrap' }}>
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {searchResults.map((p, i) => (
+                  <tr key={p.id} onClick={() => onShowPerson(p)}
+                    style={{ background: i%2===0 ? 'rgba(255,255,255,0.7)' : 'transparent', cursor: 'pointer', transition: 'background 0.12s' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i%2===0 ? 'rgba(255,255,255,0.7)' : 'transparent'; }}
+                  >
+                    <td style={{ padding: '11px 12px', fontSize: 14, fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{p.prenom} {p.nom}</td>
+                    <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{p.ethnie || <span style={{ color: 'var(--t3)' }}>—</span>}</td>
+                    <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{[p.region, p.localite].filter(Boolean).join(' / ') || <span style={{ color: 'var(--t3)' }}>—</span>}</td>
+                    <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      {p.naiss_annee ? String(p.naiss_annee) : '?'}{p.deceased && ` – ${p.deces_annee ? String(p.deces_annee) : '?'}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     );
   }
@@ -555,6 +650,43 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                 onChange={e => setFilterQ(e.target.value)}
                 placeholder="Filtrer…"
               />
+            </div>
+          )}
+
+          {step === 'persons' && (
+            <div style={{ display: 'flex', gap: '2px' }}>
+              <button
+                title="Vue cartes"
+                onClick={() => handleViewChange('cards')}
+                style={{
+                  width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: '6px', border: '1px solid var(--bd)', cursor: 'pointer',
+                  background: viewMode === 'cards' ? 'var(--green-bg)' : 'transparent',
+                  color: viewMode === 'cards' ? 'var(--green)' : 'var(--t3)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+                  <rect x="0" y="0" width="5.5" height="5.5" rx="1"/><rect x="7.5" y="0" width="5.5" height="5.5" rx="1"/>
+                  <rect x="0" y="7.5" width="5.5" height="5.5" rx="1"/><rect x="7.5" y="7.5" width="5.5" height="5.5" rx="1"/>
+                </svg>
+              </button>
+              <button
+                title="Vue liste"
+                onClick={() => handleViewChange('list')}
+                style={{
+                  width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: '6px', border: '1px solid var(--bd)', cursor: 'pointer',
+                  background: viewMode === 'list' ? 'var(--green-bg)' : 'transparent',
+                  color: viewMode === 'list' ? 'var(--green)' : 'var(--t3)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+                  <rect x="0" y="0" width="13" height="2.5" rx="1"/><rect x="0" y="5" width="13" height="2.5" rx="1"/>
+                  <rect x="0" y="10" width="13" height="2.5" rx="1"/>
+                </svg>
+              </button>
             </div>
           )}
         </div>
@@ -789,7 +921,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                   return (
                     <div
                       key={name}
-                      onClick={() => pickLenyol(name)}
+                      onClick={() => router.push(`/registre/${slugify(name)}`)}
                       className="fadein"
                       style={{
                         background: 'rgba(255,255,255,0.88)',
@@ -1068,6 +1200,12 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                         </div>
                       ))}
                   </div>
+                ) : viewMode === 'cards' ? (
+                  <div className="folder-grid">
+                    {filteredPersons.map(p => (
+                      <PersonCard key={p.id} person={p} onClick={() => onShowPerson(p)} />
+                    ))}
+                  </div>
                 ) : (
                   <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 32px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -1134,8 +1272,8 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                               {[p.region, p.localite].filter(Boolean).join(' / ') || <span style={{ color: 'var(--t3)' }}>—</span>}
                             </td>
                             <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                              {extractYear(p.naiss_date) || (p.naiss_date ? p.naiss_date : '?')}
-                              {p.deceased && ` – ${extractYear(p.deces_date) || (p.deces_date ? p.deces_date : '?')}`}
+                              {p.naiss_annee ? String(p.naiss_annee) : '?'}
+                              {p.deceased && ` – ${p.deces_annee ? String(p.deces_annee) : '?'}`}
                             </td>
                           </tr>
                         ))}

@@ -71,9 +71,9 @@ export interface Person {
   localite?: string | null
   naiss_lieu?: string | null
 
-  // Dates
-  naiss_date?: string | null
-  deces_date?: string | null
+  // Années (entiers)
+  naiss_annee?: number | null
+  deces_annee?: number | null
 
   // Extras
   metier?: string | null
@@ -200,8 +200,8 @@ export type PersonFormData = Pick<
   | 'localite'
   | 'region'
   | 'naiss_lieu'
-  | 'naiss_date'
-  | 'deces_date'
+  | 'naiss_annee'
+  | 'deces_annee'
   | 'metier'
   | 'notes'
 >

@@ -22,6 +22,17 @@ export default function MonArbreView() {
   const [lenyolFilter, setLenyolFilter]   = useState<string | null>(null);
   const [bulkMode, setBulkMode]   = useState(false);
   const [selectedIds, setSelectedIds]   = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'cards';
+    return (localStorage.getItem('arbre-view') as 'cards' | 'list') ?? 'cards';
+  });
+  const [sortCol, setSortCol] = useState<'nom' | 'clan' | 'localite' | 'naiss'>('nom');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleViewChange = (mode: 'cards' | 'list') => {
+    setViewMode(mode);
+    localStorage.setItem('arbre-view', mode);
+  };
 
   const myPersons = state.myPersons;
   const alive = myPersons.filter(p => !p.deceased).length;
@@ -103,6 +114,41 @@ export default function MonArbreView() {
         <div style={{ display: 'flex', gap: '4px' }}>
           <button className={`f-pill${genderFilter === 'M' ? ' on' : ''}`} onClick={() => setGenderFilter(g => g === 'M' ? null : 'M')}>Hommes</button>
           <button className={`f-pill${genderFilter === 'F' ? ' on' : ''}`} onClick={() => setGenderFilter(g => g === 'F' ? null : 'F')}>Femmes</button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '2px', marginLeft: '4px' }}>
+          <button
+            title="Vue cartes"
+            onClick={() => handleViewChange('cards')}
+            style={{
+              width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '6px', border: '1px solid var(--bd)', cursor: 'pointer',
+              background: viewMode === 'cards' ? 'var(--green-bg)' : 'transparent',
+              color: viewMode === 'cards' ? 'var(--green)' : 'var(--t3)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+              <rect x="0" y="0" width="5.5" height="5.5" rx="1"/><rect x="7.5" y="0" width="5.5" height="5.5" rx="1"/>
+              <rect x="0" y="7.5" width="5.5" height="5.5" rx="1"/><rect x="7.5" y="7.5" width="5.5" height="5.5" rx="1"/>
+            </svg>
+          </button>
+          <button
+            title="Vue liste"
+            onClick={() => handleViewChange('list')}
+            style={{
+              width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '6px', border: '1px solid var(--bd)', cursor: 'pointer',
+              background: viewMode === 'list' ? 'var(--green-bg)' : 'transparent',
+              color: viewMode === 'list' ? 'var(--green)' : 'var(--t3)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+              <rect x="0" y="0" width="13" height="2.5" rx="1"/><rect x="0" y="5" width="13" height="2.5" rx="1"/>
+              <rect x="0" y="10" width="13" height="2.5" rx="1"/>
+            </svg>
+          </button>
         </div>
 
         {lenyols.length > 0 && (
@@ -234,7 +280,7 @@ export default function MonArbreView() {
             <button className="btn btn-pri" onClick={() => router.push('/monarbre/nouveau')}>+ Ajouter une personne</button>
           )}
         </div>
-      ) : (
+      ) : viewMode === 'cards' ? (
         <div className="folder-grid">
           {filtered.map(p => (
             <PersonCard
@@ -246,6 +292,83 @@ export default function MonArbreView() {
               onSelect={toggleSelect}
             />
           ))}
+        </div>
+      ) : (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 32px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                {([
+                  { key: 'nom',      label: 'Nom / Prénom',      width: '34%' },
+                  { key: 'clan',     label: 'Clan / Lenyol',     width: '20%' },
+                  { key: 'localite', label: 'Région / Localité', width: '26%' },
+                  { key: 'naiss',    label: 'Naissance – Décès', width: '20%' },
+                ] as { key: typeof sortCol; label: string; width: string }[]).map(({ key, label, width }) => {
+                  const active = sortCol === key;
+                  return (
+                    <th
+                      key={key}
+                      onClick={() => {
+                        if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                        else { setSortCol(key); setSortDir('asc'); }
+                      }}
+                      style={{
+                        width, padding: '10px 12px', textAlign: 'left',
+                        fontSize: '11px', fontWeight: 700,
+                        color: active ? 'var(--green)' : 'var(--t3)',
+                        textTransform: 'uppercase', letterSpacing: '0.07em',
+                        cursor: 'pointer', userSelect: 'none',
+                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        borderBottom: '2px solid var(--bd)',
+                        whiteSpace: 'nowrap',
+                        transition: 'color 0.15s',
+                      }}
+                    >
+                      {label}
+                      {active && <span style={{ marginLeft: '4px', fontSize: '10px' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {[...filtered].sort((a, b) => {
+                let va = '', vb = '';
+                if (sortCol === 'nom') { va = ((a.nom || '') + (a.prenom || '')).toLowerCase(); vb = ((b.nom || '') + (b.prenom || '')).toLowerCase(); }
+                else if (sortCol === 'clan') { va = (a.clan || '').toLowerCase(); vb = (b.clan || '').toLowerCase(); }
+                else if (sortCol === 'localite') { va = ((a.region || '') + (a.localite || '')).toLowerCase(); vb = ((b.region || '') + (b.localite || '')).toLowerCase(); }
+                else if (sortCol === 'naiss') { va = String(a.naiss_annee ?? 0); vb = String(b.naiss_annee ?? 0); }
+                const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+                return sortDir === 'asc' ? cmp : -cmp;
+              }).map((p: Person, i) => (
+                <tr
+                  key={p.id}
+                  onClick={() => router.push(`/monarbre/${p.id}`)}
+                  style={{
+                    background: i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent'; }}
+                >
+                  <td style={{ padding: '11px 12px', fontSize: '14px', fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    {p.prenom} {p.nom}
+                  </td>
+                  <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    {p.clan || <span style={{ color: 'var(--t3)' }}>—</span>}
+                  </td>
+                  <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    {[p.region, p.localite].filter(Boolean).join(' / ') || <span style={{ color: 'var(--t3)' }}>—</span>}
+                  </td>
+                  <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    {p.naiss_annee ? String(p.naiss_annee) : '?'}
+                    {p.deceased && ` – ${p.deces_annee ? String(p.deces_annee) : '?'}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

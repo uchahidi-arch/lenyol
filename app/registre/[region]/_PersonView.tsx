@@ -12,43 +12,7 @@ import type { Person, Union } from '@/lib/types';
 
 type FicheTab = 'fiche' | 'arbre';
 
-function yearStr(d?: string | null): string {
-  if (!d) return '';
-  const m = d.match(/^(\d{4})/);
-  return m ? m[1] : '';
-}
 
-function InfoRow({ label, value, isPrivate }: {
-  label: string;
-  value?: string | null;
-  isPrivate?: boolean;
-}) {
-  if (!value && !isPrivate) return null;
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'flex-start', gap: '16px',
-      padding: '11px 0',
-      borderBottom: '1px solid rgba(0,0,0,0.05)',
-    }}>
-      <span style={{
-        fontSize: '12px', color: 'var(--t3)', width: '148px',
-        flexShrink: 0, paddingTop: '1px',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-      }}>
-        {label}
-      </span>
-      {isPrivate
-        ? <em style={{ fontSize: '14px', color: 'var(--t3)', fontStyle: 'italic' }}>Privé</em>
-        : <span style={{
-            fontSize: '14px', color: 'var(--t1)', fontWeight: 500,
-            fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.5,
-          }}>
-            {value}
-          </span>
-      }
-    </div>
-  );
-}
 
 export default function PersonView({ id }: { id: string }) {
   const router = useRouter();
@@ -213,8 +177,8 @@ export default function PersonView({ id }: { id: string }) {
     );
   }
 
-  const birthYear = yearStr(person.naiss_date);
-  const deathYear = yearStr(person.deces_date);
+  const birthYear = person.naiss_annee ? String(person.naiss_annee) : '';
+  const deathYear = person.deces_annee ? String(person.deces_annee) : '';
   const childIds = [...new Set(childUnions.flatMap(u => u.enfants_ids))];
 
   const sectionHead: React.CSSProperties = {
@@ -235,20 +199,6 @@ export default function PersonView({ id }: { id: string }) {
     boxShadow: '0 2px 12px rgba(20,18,13,0.05)',
   };
 
-  const rowStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center',
-    padding: '11px 0',
-    borderBottom: '1px solid rgba(0,0,0,0.05)',
-  };
-
-  const rowLast: React.CSSProperties = { ...rowStyle, borderBottom: 'none' };
-
-  const subGroupLabel: React.CSSProperties = {
-    fontSize: '11px', fontWeight: 700, color: 'var(--t3)',
-    textTransform: 'uppercase', letterSpacing: '0.08em',
-    margin: '0 0 8px 0',
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
-  };
 
   return (
     <>
@@ -266,29 +216,72 @@ export default function PersonView({ id }: { id: string }) {
           ← Retour
         </button>
 
-        {/* Name */}
-        <h1 style={{
-          fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 'clamp(32px, 5vw, 52px)',
-          fontWeight: 700,
-          color: 'var(--t1)',
-          lineHeight: 1.15,
-          margin: '0 0 8px 0',
-          letterSpacing: '-0.02em',
-        }}>
-          {person.prenom} {person.nom}
-        </h1>
-
-        {(birthYear || deathYear || person.deceased) && (
-          <p style={{
-            fontSize: '16px', color: 'var(--t3)', margin: '0 0 28px 0',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+        {/* Avatar + Header */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28, textAlign: 'center' }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            background: person.genre === 'M' ? '#1a3a2a' : '#5a2d4a', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 28, fontWeight: 700, marginBottom: 16,
           }}>
-            {birthYear || '?'}{person.deceased ? ` – ${deathYear || '?'}` : ''}
-          </p>
-        )}
+            {(person.prenom?.[0] || '').toUpperCase()}{(person.nom?.[0] || '').toUpperCase()}
+          </div>
 
-        {/* Tabs */}
+          <h1 style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 'clamp(28px, 4vw, 44px)',
+            fontWeight: 700, color: 'var(--t1)',
+            lineHeight: 1.15, margin: '0 0 6px 0', letterSpacing: '-0.02em',
+          }}>
+            {person.prenom} {person.nom?.toUpperCase()}
+          </h1>
+
+          {(birthYear || deathYear || person.deceased) && (
+            <p style={{ fontSize: '16px', color: '#888', margin: '0 0 16px 0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              {birthYear || '?'}{person.deceased ? ` – ${deathYear || '?'}` : ''}
+            </p>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {person.deceased && (
+              <span style={{ padding: '4px 12px', borderRadius: 20, background: '#f0f0f0', fontSize: 13, color: '#666' }}>
+                Décédé-e
+              </span>
+            )}
+            {person.ethnie && (
+              <span style={{ padding: '4px 12px', borderRadius: 20, background: '#e8f5ee', fontSize: 13, color: '#2d5a3d' }}>
+                {person.ethnie}
+              </span>
+            )}
+            {person.region && (
+              <span
+                onClick={() => router.push(`/registre/${person.region}`)}
+                style={{ padding: '4px 12px', borderRadius: 20, background: '#f0f4ff', fontSize: 13, color: '#3b5bdb', cursor: 'pointer' }}
+              >
+                {person.region}
+              </span>
+            )}
+          </div>
+
+          {/* Identité condensée */}
+          {(() => {
+            const parts = [
+              person.naiss_lieu || (person.naiss_annee ? `Né·e en ${person.naiss_annee}` : null),
+              person.localite,
+              [person.prefix_lignee, person.clan].filter(Boolean).join(' ') || null,
+              person.metier,
+            ].filter(Boolean);
+            return parts.length > 0 ? (
+              <p style={{ fontSize: 13, color: '#aaa', margin: '14px 0 0 0', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.6 }}>
+                {parts.join(' · ')}
+              </p>
+            ) : null;
+          })()}
+        </div>
+
+        <hr style={{ border: 'none', borderTop: '1px solid var(--bd)', margin: '0 0 0 0' }} />
+
+        {/* Tabs — en haut */}
         <div style={{ display: 'flex', borderBottom: '2px solid var(--bd)', marginBottom: '32px' }}>
           {(['fiche', 'arbre'] as FicheTab[]).map(t => (
             <button
@@ -313,100 +306,51 @@ export default function PersonView({ id }: { id: string }) {
         {/* ── FICHE TAB ── */}
         {tab === 'fiche' && (
           <div>
-            <section style={{ marginBottom: '36px' }}>
-              <h2 style={sectionHead}>Informations</h2>
-              <div style={card}>
-                <InfoRow label="Naissance" value={person.naiss_date} />
-                <InfoRow label="Décès" value={person.deces_date} />
-                <InfoRow label="Ethnie" value={person.ethnie} />
-                <InfoRow
-                  label="Lenyol (lignée)"
-                  value={[person.prefix_lignee, person.clan].filter(Boolean).join(' ') || null}
-                />
-                <InfoRow label="Caste" value={person.caste} />
-                <InfoRow label="Royaume d'origine" value={person.royaume} />
-                <InfoRow label="Région" value={person.region} />
-                <InfoRow label="Localité" value={person.localite} />
-              </div>
-            </section>
+            {(() => {
+              const partnerIds = [...new Set(
+                childUnions
+                  .map(u => u.pere_id === id ? u.mere_id : u.pere_id)
+                  .filter((pid): pid is string => !!pid)
+              )];
+              const rows: { label: string; pid: string }[] = [];
+              if (parentUnion?.pere_id) rows.push({ label: 'Père', pid: parentUnion.pere_id });
+              if (parentUnion?.mere_id) rows.push({ label: 'Mère', pid: parentUnion.mere_id });
+              partnerIds.forEach(pid => {
+                const p = personMap.get(pid);
+                const label = p?.genre === 'F' ? 'Épouse' : p?.genre === 'M' ? 'Mari' : 'Conjoint·e';
+                rows.push({ label, pid });
+              });
+              childIds.forEach((pid, i) => rows.push({ label: i === 0 && childIds.length === 1 ? 'Enfant' : i === 0 ? 'Enfants' : '', pid }));
 
-            {/* Parents */}
-            {(parentUnion?.pere_id || parentUnion?.mere_id) && (
-              <section style={{ marginBottom: '36px' }}>
-                <h2 style={sectionHead}>Parents</h2>
+              if (rows.length === 0) return (
+                <p style={{ color: 'var(--t3)', fontSize: 14, textAlign: 'center', padding: '40px 0' }}>
+                  Aucune relation enregistrée.
+                </p>
+              );
+              return (
                 <div style={card}>
-                  {parentUnion.pere_id && (
-                    <div style={parentUnion.mere_id ? rowStyle : rowLast}>
-                      <span style={{ fontSize: '12px', color: 'var(--t3)', width: '148px', flexShrink: 0 }}>Père</span>
-                      <PersonLink pid={parentUnion.pere_id} />
-                    </div>
-                  )}
-                  {parentUnion.mere_id && (
-                    <div style={rowLast}>
-                      <span style={{ fontSize: '12px', color: 'var(--t3)', width: '148px', flexShrink: 0 }}>Mère</span>
-                      <PersonLink pid={parentUnion.mere_id} />
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* Frères et sœurs */}
-            {(fullSibIds.length > 0 || halfFatherIds.length > 0 || halfMotherIds.length > 0) && (
-              <section style={{ marginBottom: '36px' }}>
-                <h2 style={sectionHead}>Frères et sœurs</h2>
-
-                {fullSibIds.length > 0 && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <p style={subGroupLabel}>Même père et même mère</p>
-                    <div style={card}>
-                      {fullSibIds.map((pid, i) => (
-                        <div key={pid} style={i === fullSibIds.length - 1 ? rowLast : rowStyle}>
-                          <PersonLink pid={pid} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {halfFatherIds.length > 0 && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <p style={subGroupLabel}>Même père seulement</p>
-                    <div style={card}>
-                      {halfFatherIds.map((pid, i) => (
-                        <div key={pid} style={i === halfFatherIds.length - 1 ? rowLast : rowStyle}>
-                          <PersonLink pid={pid} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {halfMotherIds.length > 0 && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <p style={subGroupLabel}>Même mère seulement</p>
-                    <div style={card}>
-                      {halfMotherIds.map((pid, i) => (
-                        <div key={pid} style={i === halfMotherIds.length - 1 ? rowLast : rowStyle}>
-                          <PersonLink pid={pid} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* Enfants */}
-            {childIds.length > 0 && (
-              <section style={{ marginBottom: '36px' }}>
-                <h2 style={sectionHead}>Enfants</h2>
-                <div style={card}>
-                  {childIds.map((pid, i) => (
-                    <div key={pid} style={i === childIds.length - 1 ? rowLast : rowStyle}>
-                      <PersonLink pid={pid} />
+                  {rows.map((r, i) => (
+                    <div key={r.pid + i} style={{
+                      display: 'flex', alignItems: 'center', gap: 16,
+                      padding: '12px 0',
+                      borderBottom: i < rows.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                    }}>
+                      <span style={{ fontSize: 12, color: 'var(--t3)', width: 100, flexShrink: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                        {r.label}
+                      </span>
+                      <PersonLink pid={r.pid} />
                     </div>
                   ))}
+                </div>
+              );
+            })()}
+
+            {/* Notes */}
+            {person.notes && (
+              <section style={{ marginTop: 28 }}>
+                <h2 style={sectionHead}>Notes</h2>
+                <div style={{ ...card, padding: '16px 20px', fontSize: 14, color: 'var(--t2)', lineHeight: 1.7 }}>
+                  {person.notes}
                 </div>
               </section>
             )}
@@ -419,7 +363,7 @@ export default function PersonView({ id }: { id: string }) {
             <TreeView
               personId={id}
               scope="reg"
-              onBack={() => router.back()}
+              onBack={() => setTab('fiche')}
               onNavigateTo={navigateTo}
               onExportPDF={(pid) => exportPersonPDF(pid, 'reg', makeExportCtx())}
               onRelier={(p) => {
@@ -427,6 +371,29 @@ export default function PersonView({ id }: { id: string }) {
                 setRelierTarget(p);
               }}
             />
+          </div>
+        )}
+
+        {/* Bandeau Ajouté par — sous les tabs */}
+        {(person.created_by_name || person.created_at) && (
+          <div style={{
+            borderTop: '1px solid #f0ede8', marginTop: 40, padding: '16px 0',
+            display: 'flex', alignItems: 'center', gap: 12,
+            fontSize: 13, color: '#aaa',
+          }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: '#2d5a3d', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 700, flexShrink: 0,
+            }}>
+              {(person.created_by_name?.[0] ?? 'U').toUpperCase()}
+            </div>
+            <span>
+              Fiche créée par{' '}
+              <strong style={{ color: '#555' }}>{person.created_by_name ?? 'Utilisateur'}</strong>
+              {person.created_at && ` · ${new Date(person.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+            </span>
           </div>
         )}
       </div>
