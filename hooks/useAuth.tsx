@@ -17,7 +17,7 @@ interface AuthContext {
   ) => Promise<string | null>;
   signOut: () => Promise<void>;
   updateUsername: (username: string) => Promise<string | null>;
-  updateProfile: (fields: { prenom: string; nom?: string | null; region?: string | null }) => Promise<string | null>;
+  updateProfile: (fields: { prenom?: string; nom?: string | null; region?: string | null; photo_url?: string | null }) => Promise<string | null>;
 }
 
 const AuthCtx = createContext<AuthContext | null>(null);
@@ -71,6 +71,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (u) {
       const { data } = await supabase.from('profiles').select('*').eq('id', u.id).maybeSingle();
       setProfile(data || null);
+      // Auto-créer l'arbre public si l'utilisateur n'en a pas
+      const { data: existingTree } = await supabase
+        .from('trees')
+        .select('id')
+        .eq('owner_id', u.id)
+        .eq('prive', false)
+        .maybeSingle();
+      if (!existingTree) {
+        await supabase.from('trees').insert({ owner_id: u.id, nom: 'Mon Arbre Public', prive: false });
+      }
     } else {
       setProfile(null);
     }
@@ -161,16 +171,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   };
 
-  const updateProfile = async (fields: { prenom: string; nom?: string | null; region?: string | null }): Promise<string | null> => {
+  const updateProfile = async (fields: { prenom?: string; nom?: string | null; region?: string | null; photo_url?: string | null }): Promise<string | null> => {
     if (!user) return 'Non connecté.';
+    const updates: Record<string, any> = { id: user.id };
+    if (fields.prenom !== undefined) updates.prenom = fields.prenom;
+    if (fields.nom !== undefined) updates.nom = fields.nom ?? null;
+    if (fields.region !== undefined) updates.region = (fields.region as Profile['region']) ?? null;
+    if (fields.photo_url !== undefined) updates.photo_url = fields.photo_url ?? null;
+
     const { data: rows, error } = await supabase
       .from('profiles')
-      .upsert({
-        id: user.id,
-        prenom: fields.prenom,
-        nom: fields.nom ?? null,
-        region: (fields.region as Profile['region']) ?? null,
-      }, { onConflict: 'id' })
+      .upsert(updates, { onConflict: 'id' })
       .select();
     if (error) {
       console.error('[updateProfile] Supabase error:', error);

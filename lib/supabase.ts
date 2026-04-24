@@ -22,5 +22,10 @@ export function getSupabaseClient() {
   return _client
 }
 
-// Export nommé direct — compatible avec import { supabase } from '@/lib/supabase'
-export const supabase = getSupabaseClient()
+// Export lazy — compatible avec import { supabase } from '@/lib/supabase'
+// Le client n'est créé que lors du premier accès, pas au chargement du module
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_target, prop) {
+    return (_client ??= createClient())[prop as keyof ReturnType<typeof createClient>]
+  }
+})

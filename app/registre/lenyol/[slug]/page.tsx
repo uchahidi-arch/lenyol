@@ -31,11 +31,18 @@ export default function LenyolPage({
 
   useEffect(() => {
     import('@/lib/supabase').then(async ({ supabase }) => {
+      const { data: publicTrees } = await supabase.from('trees').select('id').eq('prive', false);
+      const publicIds = (publicTrees ?? []).map((t: { id: string }) => t.id);
+      const treeFilter = publicIds.length > 0
+        ? `tree_id.is.null,tree_id.in.(${publicIds.join(',')})`
+        : 'tree_id.is.null';
+
       // 1. Résoudre le slug → label complet (prefix_lignee + clan)
       const { data: clanData } = await supabase
         .from('persons')
         .select('clan, prefix_lignee')
-        .not('clan', 'is', null);
+        .not('clan', 'is', null)
+        .or(treeFilter);
 
       const labels = [
         ...new Set(
@@ -58,6 +65,7 @@ export default function LenyolPage({
         .from('persons')
         .select('*')
         .eq('clan', resolvedClan)
+        .or(treeFilter)
         .order('nom', { ascending: true });
 
       const list = (pData ?? []) as Person[];
@@ -232,9 +240,9 @@ export default function LenyolPage({
                         return sortDir === 'asc' ? cmp : -cmp;
                       }).map((p, i) => (
                         <tr key={p.id} onClick={() => router.push(`/registre/${p.id}`)}
-                          style={{ background: i%2===0 ? 'rgba(255,255,255,0.7)' : 'transparent', cursor: 'pointer', transition: 'background 0.12s' }}
+                          style={{ background: i%2===0 ? 'var(--warm2)' : 'transparent', cursor: 'pointer', transition: 'background 0.12s' }}
                           onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)'; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i%2===0 ? 'rgba(255,255,255,0.7)' : 'transparent'; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i%2===0 ? 'var(--warm2)' : 'transparent'; }}
                         >
                           <td style={{ padding: '11px 12px', fontSize: 14, fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{p.prenom} {p.nom}</td>
                           <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{p.clan || <span style={{ color: 'var(--t3)' }}>—</span>}</td>

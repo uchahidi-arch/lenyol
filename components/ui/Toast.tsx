@@ -54,7 +54,7 @@ function ToastItem({ msg, type }: ToastMessage) {
   }, [])
 
   const bg = type === 'error'   ? '#7A1A2A'
-           : type === 'success' ? '#1A5C3E'
+           : type === 'success' ? 'var(--green2)'
            : '#14120D'
 
   return (
@@ -95,7 +95,7 @@ export default function Toast() {
   const { toast } = useAppState()
   if (!toast) return null
   const bg = toast.type === 'error'   ? '#7A1A2A'
-           : toast.type === 'success' ? '#1A5C3E'
+           : toast.type === 'success' ? 'var(--green2)'
            : '#14120D'
   return (
     <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, pointerEvents: 'none' }}>

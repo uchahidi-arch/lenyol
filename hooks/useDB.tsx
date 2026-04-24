@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppState } from '@/hooks/useAppState';
-import type { Person, Union } from '@/lib/types';
+import type { Person, Union, Tree } from '@/lib/types';
 
 export function useDB() {
   const { user, profile } = useAuth();
@@ -16,15 +16,88 @@ export function useDB() {
 
   // ── LOAD ──
 
-  const loadMyData = useCallback(async () => {
+  // treeId = undefined → arbre public (tree_id IS NULL, données legacy)
+  // treeId = string   → arbre privé spécifique (tree_id = treeId)
+  const loadMyData = useCallback(async (treeId?: string) => {
     if (!user) return;
-    const [pr, ur] = await Promise.all([
-      supabase.from('persons').select('*').eq('owner_id', user.id).order('prenom'),
-      supabase.from('unions').select('*').eq('owner_id', user.id),
-    ]);
-    state.setMyPersons(pr.data || []);
-    state.setMyUnions(ur.data || []);
+    const PAGE = 1000;
+    let allPersons: Person[] = [];
+    let from = 0;
+    let hasMore = true;
+    while (hasMore) {
+      let q = supabase
+        .from('persons')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('prenom')
+        .range(from, from + PAGE - 1);
+      if (treeId) {
+        q = q.eq('tree_id', treeId);
+      } else {
+        q = q.is('tree_id', null);
+      }
+      const { data } = await q;
+      if (!data || data.length === 0) { hasMore = false; break; }
+      allPersons = [...allPersons, ...data];
+      if (data.length < PAGE) hasMore = false;
+      from += PAGE;
+    }
+    let uq = supabase.from('unions').select('*').eq('owner_id', user.id);
+    if (treeId) {
+      uq = uq.eq('tree_id', treeId);
+    } else {
+      uq = uq.is('tree_id', null);
+    }
+    const { data: ur } = await uq;
+    state.setMyPersons(allPersons);
+    state.setMyUnions(ur || []);
   }, [user]);
+
+  // ── TREES ──
+
+  const fetchUserTrees = useCallback(async (): Promise<Tree[]> => {
+    if (!user) return [];
+    const { data } = await supabase.from('trees').select('*').eq('owner_id', user.id).order('created_at');
+    return (data || []) as Tree[];
+  }, [user]);
+
+  const createPrivateTree = useCallback(async (nom: string): Promise<Tree> => {
+    if (!user) throw new Error('Non connecté');
+    const { data: tree, error } = await supabase
+      .from('trees')
+      .insert({ owner_id: user.id, nom, prive: true })
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Copier les personnes publiques dans l'arbre privé
+    const persons = state.myPersons;
+    const oldToNew = new Map<string, string>();
+    for (const p of persons) {
+      const { id, created_at, updated_at, ...rest } = p;
+      const { data: np, error: pe } = await supabase
+        .from('persons')
+        .insert({ ...rest, tree_id: tree.id, external_ref: id })
+        .select()
+        .single();
+      if (!pe && np) oldToNew.set(id, np.id);
+    }
+
+    // Copier les unions
+    for (const u of state.myUnions) {
+      const { id, created_at, updated_at, ...urest } = u;
+      await supabase.from('unions').insert({
+        ...urest,
+        tree_id: tree.id,
+        pere_id: (u.pere_id && oldToNew.get(u.pere_id)) ?? u.pere_id,
+        mere_id: (u.mere_id && oldToNew.get(u.mere_id)) ?? u.mere_id,
+        enfants_ids: (u.enfants_ids || []).map((eid: string) => oldToNew.get(eid) ?? eid),
+      });
+    }
+
+    showToast(`Arbre privé « ${nom} » créé avec ${persons.length} personne${persons.length > 1 ? 's' : ''} ✓`, 'success');
+    return tree as Tree;
+  }, [user, state, showToast]);
 
   // ── FETCH (on-demand, with local cache) ──
 
@@ -58,33 +131,45 @@ export function useDB() {
     return null;
   }, [state]);
 
-  const fetchByLocalite = useCallback(async (localite: string): Promise<Person[]> => {
-    if (localite === '__nr__') {
-      const { data } = await supabase.from('persons').select('*').is('localite', null).neq('masque', true).order('prenom');
-      return data || [];
-    }
-    const { data } = await supabase.from('persons').select('*').eq('localite', localite).neq('masque', true).order('prenom');
-    return data || [];
+  const getPublicTreeFilter = useCallback(async (): Promise<string> => {
+    const { data: publicTrees } = await supabase.from('trees').select('id').eq('prive', false);
+    const publicIds = (publicTrees ?? []).map((t: { id: string }) => t.id);
+    return publicIds.length > 0
+      ? `tree_id.is.null,tree_id.in.(${publicIds.join(',')})`
+      : 'tree_id.is.null';
   }, []);
 
+  const fetchByLocalite = useCallback(async (localite: string): Promise<Person[]> => {
+    const treeFilter = await getPublicTreeFilter();
+    if (localite === '__nr__') {
+      const { data } = await supabase.from('persons').select('*').is('localite', null).neq('masque', true).or(treeFilter).order('prenom');
+      return data || [];
+    }
+    const { data } = await supabase.from('persons').select('*').eq('localite', localite).neq('masque', true).or(treeFilter).order('prenom');
+    return data || [];
+  }, [getPublicTreeFilter]);
+
   const fetchByClan = useCallback(async (clan: string): Promise<Person[]> => {
+    const treeFilter = await getPublicTreeFilter();
     if (clan === '__sans__') {
-      const { data } = await supabase.from('persons').select('*').is('clan', null).neq('masque', true).order('prenom');
+      const { data } = await supabase.from('persons').select('*').is('clan', null).neq('masque', true).or(treeFilter).order('prenom');
       return data || [];
     }
     const parts = clan.split(' ');
     const clanName = parts.length > 1 ? parts.slice(1).join(' ') : clan;
-    const { data } = await supabase.from('persons').select('*').eq('clan', clanName).neq('masque', true).order('prenom');
+    const { data } = await supabase.from('persons').select('*').eq('clan', clanName).neq('masque', true).or(treeFilter).order('prenom');
     return data || [];
-  }, []);
+  }, [getPublicTreeFilter]);
 
   const searchPersons = useCallback(async (q: string): Promise<Person[]> => {
+    const treeFilter = await getPublicTreeFilter();
     const { data } = await supabase.from('persons').select('*')
       .or(`prenom.ilike.%${q}%,nom.ilike.%${q}%,clan.ilike.%${q}%,localite.ilike.%${q}%,galle.ilike.%${q}%`)
       .neq('masque', true)
+      .or(treeFilter)
       .limit(300);
     return data || [];
-  }, []);
+  }, [getPublicTreeFilter]);
 
   // ── GETTERS (local) ──
 
@@ -124,6 +209,20 @@ export function useDB() {
     if (error) throw error;
     state.setMyPersons(state.myPersons.map(p => p.id === id ? data : p));
     state.setAllPersons(state.allPersons.map(p => p.id === id ? data : p));
+
+    // Sync les champs publics vers les copies privées (one-way)
+    const { data: privateCopies } = await supabase
+      .from('persons').select('id').eq('external_ref', id);
+    if (privateCopies && privateCopies.length > 0) {
+      const syncFields: (keyof Person)[] = ['prenom', 'nom', 'genre', 'deceased', 'naiss_date', 'deces_date', 'naiss_annee', 'deces_annee', 'ethnie', 'region', 'localite', 'clan', 'galle', 'metier'];
+      const syncData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      for (const f of syncFields) {
+        if (f in d) syncData[f] = d[f];
+      }
+      const copyIds = privateCopies.map((c: { id: string }) => c.id);
+      await supabase.from('persons').update(syncData).in('id', copyIds);
+    }
+
     return data;
   }, [state]);
 
@@ -255,8 +354,8 @@ export function useDB() {
     let ged = '0 HEAD\n1 GEDC\n2 VERS 5.5.1\n1 CHAR UTF-8\n';
     state.myPersons.forEach(p => {
       ged += `0 @I${p.id}@ INDI\n1 NAME ${p.prenom || ''} /${p.nom || ''}/\n1 SEX ${p.genre === 'F' ? 'F' : 'M'}\n`;
-      if (p.naiss_annee) ged += `1 BIRT\n2 DATE ${p.naiss_annee}\n`;
-      if (p.deceased && p.deces_annee) ged += `1 DEAT\n2 DATE ${p.deces_annee}\n`;
+      if (p.naiss_date) ged += `1 BIRT\n2 DATE ${p.naiss_date.slice(0, 4)}\n`;
+      if (p.deceased && p.deces_date) ged += `1 DEAT\n2 DATE ${p.deces_date.slice(0, 4)}\n`;
     });
     state.myUnions.forEach(u => {
       ged += `0 @F${u.id}@ FAM\n`;
@@ -297,165 +396,118 @@ export function useDB() {
   }, [addPerson, loadMyData]);
 
   const importGEDCOM = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async (ev) => {
-    try {
-      const text = ev.target?.result as string;
-      const lines = text.split(/\r?\n/);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const content = ev.target?.result as string;
+        const lines = content.split(/\r?\n/).filter(l => l.trim());
+        const individuals: Record<string, any> = {};
+        const families: Record<string, any> = {};
+        let current: any = null;
 
-      // ── 1. PARSE ──
-      type GedIndi = {
-        gedId: string;
-        prenom: string;
-        nom: string;
-        genre: 'M' | 'F';
-        deceased: boolean;
-        naiss_annee?: number | null;
-        deces_annee?: number | null;
-        localite?: string | null;
-        naiss_lieu?: string | null;
-        notes?: string | null;
-      };
-      type GedFam = {
-        gedId: string;
-        husbId?: string;
-        wifeId?: string;
-        childIds: string[];
-      };
+        for (const line of lines) {
+          const m = line.match(/^(\d+)\s+([^\s]+)(?:\s+(.*))?$/);
+          if (!m) continue;
+          const lvl = Number(m[1]);
+          const tag = m[2];
+          const value = (m[3] || '').trim();
 
-      const indis: GedIndi[] = [];
-      const fams: GedFam[] = [];
-
-      let curIndi: GedIndi | null = null;
-      let curFam: GedFam | null = null;
-      let curTag = '';
-
-      for (const raw of lines) {
-        const line = raw.trim();
-        if (!line) continue;
-        const parts = line.split(' ');
-        const level = parseInt(parts[0]);
-        const second = parts[1];
-        const rest = parts.slice(2).join(' ');
-
-        if (level === 0) {
-          if (curIndi) indis.push(curIndi);
-          if (curFam) fams.push(curFam);
-          curIndi = null;
-          curFam = null;
-          curTag = '';
-
-          if (second?.startsWith('@') && rest === 'INDI') {
-            curIndi = {
-              gedId: second,
-              prenom: '',
-              nom: '',
-              genre: 'M',
-              deceased: false,
-            };
-          } else if (second?.startsWith('@') && rest === 'FAM') {
-            curFam = { gedId: second, childIds: [] };
-          }
-          continue;
-        }
-
-        if (curIndi) {
-          if (level === 1 && second === 'NAME') {
-            const nameParts = rest.split('/');
-            curIndi.prenom = nameParts[0]?.trim() || '';
-            curIndi.nom = nameParts[1]?.trim() || '';
-            curTag = 'NAME';
-          } else if (level === 1 && second === 'SEX') {
-            curIndi.genre = rest === 'F' ? 'F' : 'M';
-          } else if (level === 1 && (second === 'BIRT' || second === 'DEAT')) {
-            curTag = second;
-          } else if (level === 1 && second === 'DEAT' && rest && rest !== 'Y') {
-            curTag = 'DEAT';
-          } else if (level === 1 && second === 'DEAT') {
-            curIndi.deceased = true;
-            curTag = 'DEAT';
-          } else if (level === 1 && second === 'NOTE') {
-            curIndi.notes = rest || null;
-            curTag = 'NOTE';
-          } else if (level === 2 && second === 'DATE') {
-            const year = rest.match(/\d{4}/)?.[0];
-            if (year) {
-              if (curTag === 'BIRT') curIndi.naiss_annee = parseInt(year);
-              if (curTag === 'DEAT') {
-                curIndi.deces_annee = parseInt(year);
-                curIndi.deceased = true;
-              }
+          if (lvl === 0) {
+            if (tag.startsWith('@') && tag.endsWith('@') && value === 'INDI') {
+              current = { type: 'INDI', xref: tag, data: {} as any, ev: null };
+              individuals[tag] = current;
+            } else if (tag.startsWith('@') && tag.endsWith('@') && value === 'FAM') {
+              current = { type: 'FAM', xref: tag, data: {} as any, children: [] as string[], ev: null };
+              families[tag] = current;
+            } else {
+              current = null;
             }
-          } else if (level === 2 && second === 'PLAC') {
-            if (curTag === 'BIRT') curIndi.naiss_lieu = rest || null;
-          } else if (level === 2 && second === 'CONT' && curTag === 'NOTE') {
-            curIndi.notes = (curIndi.notes || '') + '\n' + rest;
+            continue;
+          }
+
+          if (!current) continue;
+
+          if (current.type === 'INDI') {
+            if (lvl === 1) {
+              if (tag === 'NAME') {
+                const nm = value.match(/^(.+?)\s*\/(.*)\//);
+                current.data.prenom = nm ? nm[1].trim() : value.replace(/\s*\/.*/, '').trim();
+                current.data.nom = nm ? nm[2].trim() : '';
+              } else if (tag === 'SEX') {
+                current.data.genre = value === 'F' ? 'F' : 'M';
+              } else if (tag === 'BIRT' || tag === 'DEAT') {
+                current.ev = tag;
+              } else if (tag === 'NOTE') {
+                current.data.notes = (current.data.notes || '') + value + '\n';
+              }
+            } else if (lvl === 2 && tag === 'DATE') {
+              const year = value.match(/\d{4}/)?.[0];
+              if (year && current.ev === 'BIRT') current.data.naiss_date = year + '-01-01';
+              if (year && current.ev === 'DEAT') { current.data.deces_date = year + '-01-01'; current.data.deceased = true; }
+            } else if (lvl === 2 && tag === 'PLAC' && current.ev === 'BIRT') {
+              current.data.naiss_lieu = value;
+            }
+          } else if (current.type === 'FAM') {
+            if (lvl === 1) {
+              if (tag === 'HUSB') current.data.pere_id = value;
+              else if (tag === 'WIFE') current.data.mere_id = value;
+              else if (tag === 'CHIL') current.children.push(value);
+            }
           }
         }
 
-        if (curFam) {
-          if (level === 1 && second === 'HUSB') curFam.husbId = rest.replace(/@/g, '');
-          if (level === 1 && second === 'WIFE') curFam.wifeId = rest.replace(/@/g, '');
-          if (level === 1 && second === 'CHIL') curFam.childIds.push(rest.replace(/@/g, ''));
-        }
-      }
-      if (curIndi) indis.push(curIndi);
-      if (curFam) fams.push(curFam);
+        if (Object.keys(individuals).length === 0) throw new Error('Aucune personne trouvée dans le fichier GEDCOM');
 
-      if (indis.length === 0) throw new Error('Aucune personne trouvée dans le fichier GEDCOM');
+        setLoading(true);
 
-      setLoading(true);
-
-      // ── 2. INSERT PERSONS ──
-      const gedToDbId: Record<string, string> = {};
-      for (const indi of indis) {
-        const gedIdClean = indi.gedId.replace(/@/g, '');
-        const p = await addPerson({
-          prenom: indi.prenom || '?',
-          nom: indi.nom || '',
-          genre: indi.genre,
-          deceased: indi.deceased,
-          naiss_annee: indi.naiss_annee ?? null,
-          deces_annee: indi.deces_annee ?? null,
-          naiss_lieu: indi.naiss_lieu ?? null,
-          notes: indi.notes ?? null,
-        });
-        gedToDbId[gedIdClean] = p.id;
-      }
-
-      // ── 3. INSERT UNIONS ──
-      for (const fam of fams) {
-        const pereId = fam.husbId ? gedToDbId[fam.husbId] ?? null : null;
-        const mereId = fam.wifeId ? gedToDbId[fam.wifeId] ?? null : null;
-        const enfantsIds = fam.childIds
-          .map(cid => gedToDbId[cid])
-          .filter(Boolean) as string[];
-
-        if (pereId || mereId || enfantsIds.length > 0) {
-          await addUnion({
-            pere_id: pereId,
-            mere_id: mereId,
-            enfants_ids: enfantsIds,
+        // INSERT PERSONS — garde les xref @...@ comme clés
+        const mapInd: Record<string, string> = {};
+        for (const xr in individuals) {
+          const p = individuals[xr].data;
+          const person = await addPerson({
+            prenom: p.prenom || 'Inconnu',
+            nom: p.nom || '',
+            genre: p.genre || 'M',
+            deceased: !!p.deceased,
+            naiss_lieu: p.naiss_lieu ?? null,
+            notes: p.notes ?? null,
+            naiss_date: p.naiss_date ?? null,
+            deces_date: p.deces_date ?? null,
           });
+          mapInd[xr] = person.id;
         }
-      }
 
-      await loadMyData();
-      showToast(`${indis.length} personnes importées depuis GEDCOM ✓`, 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Erreur import GEDCOM', 'error');
-    }
-    setLoading(false);
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-}, [addPerson, addUnion, loadMyData, setLoading, showToast]);
+        // INSERT UNIONS
+        for (const xr in families) {
+          const f = families[xr].data;
+          const children = families[xr].children || [];
+          const pereId = f.pere_id ? (mapInd[f.pere_id] ?? null) : null;
+          const mereId = f.mere_id ? (mapInd[f.mere_id] ?? null) : null;
+          const enfantsIds = children.map((c: string) => mapInd[c]).filter(Boolean);
+
+          if (pereId || mereId || enfantsIds.length > 0) {
+            await addUnion({ pere_id: pereId, mere_id: mereId, enfants_ids: enfantsIds });
+          }
+        }
+
+        await loadMyData();
+        showToast(`${Object.keys(individuals).length} personnes importées depuis GEDCOM ✓`, 'success');
+      } catch (err: any) {
+        showToast(err.message || 'Erreur import GEDCOM', 'error');
+      }
+      setLoading(false);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }, [addPerson, addUnion, loadMyData, setLoading, showToast]);
 
   return {
     state,
     loadMyData,
+    fetchUserTrees,
+    createPrivateTree,
     fetchPerson,
     fetchUnionsOf,
     fetchParentUnionOf,

@@ -32,6 +32,14 @@ export type NotificationType =
 
 // ─── TABLES SUPABASE ────────────────────────────────────────────
 
+export interface Tree {
+  id: string                  // uuid
+  owner_id: string            // uuid — référence profiles.id
+  nom: string
+  prive: boolean
+  created_at?: string | null
+}
+
 export interface Profile {
   id: string                  // uuid — correspond à auth.users.id
   prenom: string
@@ -41,7 +49,11 @@ export interface Profile {
   role?: 'user' | 'redacteur' | 'admin' | null
   cgu_accepted?: boolean | null
   cgu_accepted_at?: string | null
+  photo_url?: string | null
   created_at?: string | null
+  gardien_nom?: string | null
+  gardien_email?: string | null
+  heritage_message?: string | null
 }
 
 export interface Person {
@@ -71,17 +83,28 @@ export interface Person {
   localite?: string | null
   naiss_lieu?: string | null
 
-  // Années (entiers)
+  // Dates ISO (YYYY-MM-DD)
+  naiss_date?: string | null
+  deces_date?: string | null
+
+  // Années (entier, quand la date exacte est inconnue)
   naiss_annee?: number | null
   deces_annee?: number | null
 
   // Extras
   metier?: string | null
   notes?: string | null
+  telephone?: string | null
+  adresse?: string | null
   photo_url?: string | null
+
+  email?: string | null
 
   // Visibilité dans le registre public
   masque?: boolean | null        // true = caché dans le registre (vivants seulement)
+
+  // Arbre (null = arbre public/legacy)
+  tree_id?: string | null        // uuid — référence trees.id
 
   // Lien vers une personne publique (anti-doublon)
   external_ref?: string | null   // uuid — références persons.id
@@ -101,6 +124,9 @@ export interface Union {
   mere_id?: string | null     // uuid — référence persons.id
   enfants_ids: string[]       // uuid[]
 
+  // Arbre (null = union publique/legacy)
+  tree_id?: string | null        // uuid — référence trees.id
+
   created_at?: string | null
   updated_at?: string | null
 }
@@ -113,6 +139,19 @@ export interface Notification {
   body?: string | null
   data?: Record<string, unknown>
   read: boolean
+  created_at?: string | null
+}
+
+export interface Capsule {
+  id: string                        // uuid
+  owner_id: string                  // uuid — référence profiles.id
+  titre: string
+  message: string
+  reveal_date: string               // ISO date YYYY-MM-DD
+  destinataire_nom?: string | null
+  destinataire_email?: string | null
+  photo_url?: string | null
+  revealed: boolean
   created_at?: string | null
 }
 
@@ -204,6 +243,9 @@ export type PersonFormData = Pick<
   | 'deces_annee'
   | 'metier'
   | 'notes'
+  | 'telephone'
+  | 'adresse'
+  | 'email'
 >
 
 /** Champs pour créer/modifier une union */

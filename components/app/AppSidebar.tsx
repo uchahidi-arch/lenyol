@@ -19,6 +19,11 @@ export interface RacinesFilterCbs {
   setCategorie: (v: string) => void;
 }
 
+export interface TimelineSidebarCbs {
+  typeFilter: string;
+  setTypeFilter: (v: 'naissance' | 'deces' | 'mariage' | 'all') => void;
+}
+
 const ETHNIES = ['Wolof', 'Peul', 'Sérère', 'Mandingue', 'Toucouleur', 'Diola'];
 
 const REGIONS = [
@@ -36,6 +41,7 @@ const PERIODES = ['Avant 1500', 'XVIe siècle', 'XVIIe siècle', 'XVIIIe siècle
 interface Props {
   registreCbs?: React.RefObject<RegistreSidebarCbs | null>;
   racinesCbs?: RacinesFilterCbs;
+  timelineCbs?: React.RefObject<TimelineSidebarCbs | null>;
 }
 
 function CollapsibleSection({
@@ -95,7 +101,7 @@ function CheckItem({
       display: 'flex', alignItems: 'center', gap: '8px',
       padding: '5px 6px', borderRadius: '7px', cursor: 'pointer',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
-      fontSize: '13px', color: checked ? '#1A3A2A' : 'var(--t1)',
+      fontSize: '13px', color: checked ? 'var(--green)' : 'var(--t1)',
       fontWeight: checked ? 600 : 400,
       userSelect: 'none',
     }}
@@ -104,8 +110,8 @@ function CheckItem({
     >
       <span style={{
         width: '14px', height: '14px', borderRadius: '4px', flexShrink: 0,
-        border: checked ? '2px solid #1A3A2A' : '1.5px solid rgba(0,0,0,0.2)',
-        background: checked ? '#1A3A2A' : 'transparent',
+        border: checked ? '2px solid var(--green)' : '1.5px solid var(--bd)',
+        background: checked ? 'var(--green)' : 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.12s',
       }}>
@@ -125,7 +131,7 @@ function CheckItem({
   );
 }
 
-export default function AppSidebar({ registreCbs, racinesCbs }: Props) {
+export default function AppSidebar({ registreCbs, racinesCbs, timelineCbs }: Props) {
   const { isOpen, toggle, nomQ, setNomQ } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
@@ -174,6 +180,7 @@ export default function AppSidebar({ registreCbs, racinesCbs }: Props) {
   const isRacines   = pathname.startsWith('/racines');
   const isMonArbre  = pathname.startsWith('/monarbre');
   const isGriot     = pathname.startsWith('/griot');
+  const isTimeline  = pathname.startsWith('/timeline');
 
   const recentPersons = [...(state.myPersons ?? [])]
     .sort((a, b) => {
@@ -195,7 +202,7 @@ export default function AppSidebar({ registreCbs, racinesCbs }: Props) {
   );
 
   const divider = (
-    <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '12px 0 16px' }} />
+    <div style={{ height: '1px', background: 'var(--bd)', margin: '12px 0 16px' }} />
   );
 
   const itemBtn = (text: string, onClick: () => void, active = false) => (
@@ -231,7 +238,7 @@ export default function AppSidebar({ registreCbs, racinesCbs }: Props) {
             transform: 'translateY(-50%)',
             width: '28px', height: '48px',
             border: '1px solid var(--bd)', borderRadius: '8px',
-            background: 'rgba(252,252,250,0.95)', backdropFilter: 'blur(8px)',
+            background: 'var(--cream)', backdropFilter: 'blur(8px)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', color: 'var(--t2)', zIndex: 200,
             boxShadow: 'var(--sh)',
@@ -244,13 +251,14 @@ export default function AppSidebar({ registreCbs, racinesCbs }: Props) {
         flexShrink: isDesktop ? 0 : undefined,
         position: isDesktop ? 'sticky' : 'fixed',
         left: isDesktop ? undefined : 0,
-        top: '72px',
-        height: 'calc(100vh - 72px)',
+        top: '96px',
+        height: 'calc(100vh - 96px)',
+        paddingTop: '8px',
         overflow: 'hidden',
         transition: 'width 0.28s cubic-bezier(0.4,0,0.2,1)',
-        background: 'rgba(252,252,250,0.92)',
+        background: 'var(--cream)',
         backdropFilter: 'blur(14px)',
-        borderRight: isOpen ? '1px solid rgba(0,0,0,0.07)' : 'none',
+        borderRight: isOpen ? '1px solid var(--bd)' : 'none',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 90,
@@ -259,13 +267,13 @@ export default function AppSidebar({ registreCbs, racinesCbs }: Props) {
         <div style={{ width: '192px', display: 'flex', flexDirection: 'column', height: '100%' }}>
 
           {/* Bouton fermer */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 8px 4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '6px 8px 4px' }}>
             <button
               onClick={toggle}
               title="Réduire"
               style={{
-                width: '28px', height: '28px', border: '1px solid rgba(0,0,0,0.09)',
-                borderRadius: '8px', background: 'rgba(255,255,255,0.9)',
+                width: '28px', height: '28px', border: '1px solid var(--bd)',
+                borderRadius: '8px', background: 'var(--warm)',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '13px', color: 'var(--t2)',
               }}
@@ -350,13 +358,13 @@ export default function AppSidebar({ registreCbs, racinesCbs }: Props) {
                   placeholder="Rechercher…"
                   style={{
                     width: '100%', padding: '8px 10px', borderRadius: '8px',
-                    border: '1px solid rgba(0,0,0,0.1)',
-                    background: 'rgba(255,255,255,0.85)',
+                    border: '1px solid var(--bd)',
+                    background: 'var(--bg)',
                     fontSize: '13px', fontFamily: "'Plus Jakarta Sans', sans-serif",
                     outline: 'none', color: 'var(--t1)', boxSizing: 'border-box',
                   }}
                   onFocus={e => (e.currentTarget.style.borderColor = 'var(--green)')}
-                  onBlur={e => (e.currentTarget.style.borderColor = 'rgba(0,0,0,0.1)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--bd)')}
                 />
                 {nomQ.trim() && registreCbs.current.filteredNomGroups.slice(0, 8).map(({ label: l, count }) => (
                   <button
@@ -421,6 +429,21 @@ export default function AppSidebar({ registreCbs, racinesCbs }: Props) {
                 {itemBtn('Toutes les personnes', () => router.push('/monarbre'))}
                 {itemBtn('Ajouter une personne', () => router.push('/monarbre/nouveau'))}
                 {itemBtn('Nouveau mariage', () => router.push('/monarbre/union/nouvelle'))}
+              </>
+            )}
+
+            {/* ═══ TIMELINE ═══ */}
+            {isTimeline && (
+              <>
+                {label("Type d'événement")}
+                {([
+                  { key: 'all',       lbl: 'Tous'      },
+                  { key: 'naissance', lbl: 'Naissance' },
+                  { key: 'deces',     lbl: 'Décès'     },
+                  { key: 'mariage',   lbl: 'Mariage'   },
+                ] as const).map(({ key, lbl }) =>
+                  itemBtn(lbl, () => timelineCbs?.current?.setTypeFilter(key), (timelineCbs?.current?.typeFilter ?? 'all') === key)
+                )}
               </>
             )}
 

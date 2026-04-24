@@ -167,11 +167,13 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
   const [sortCol, setSortCol] = useState<'nom' | 'ethnie' | 'localite' | 'naiss'>('nom');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [listPage, setListPage] = useState(0);
+  const [listTotal, setListTotal] = useState(0);
 
   // ── Recherche globale depuis le header
   const [searchResults, setSearchResults] = useState<Person[]>([]);
   const [searching, setSearching] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const filterTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // ── Stats légères pour les cartes de régions (chargées au montage)
   const [allPersonsLight, setAllPersonsLight] = useState<{
@@ -231,7 +233,29 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
     searchTimer.current = setTimeout(() => runSearch(searchQ), 300);
   }, [searchQ]);
 
-  useEffect(() => { setListPage(0); }, [persons, filterQ]);
+  useEffect(() => {
+    if (tab !== 'all') return;
+    clearTimeout(filterTimer.current);
+    if (!filterQ || filterQ.trim().length < 2) { setSearchResults([]); return; }
+    filterTimer.current = setTimeout(() => runSearch(filterQ), 300);
+  }, [filterQ, tab]);
+
+  // listPage changes for 'all' tab: fetch the next/previous page
+  useEffect(() => {
+    if (tab !== 'all') return;
+    const fetchPage = async () => {
+      setLoading(true);
+      const { data, count } = await import('@/lib/supabase').then(m =>
+        m.supabase.from('persons').select('*', { count: 'exact' }).range(listPage * 50, listPage * 50 + 49)
+      );
+      setListTotal(count || 0);
+      setPersons(data || []);
+      setLoading(false);
+    };
+    fetchPage();
+  }, [listPage, tab]);
+
+  useEffect(() => { setListPage(0); }, [filterQ]);
 
   // ── NAVIGATION ──
 
@@ -297,10 +321,11 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
   };
 
   const loadAll = async () => {
-    setTab('all'); setStep('persons'); setLoading(true);
-    const { data } = await import('@/lib/supabase').then(m =>
-      m.supabase.from('persons').select('*').order('prenom').limit(300)
+    setTab('all'); setStep('persons'); setLoading(true); setListPage(0);
+    const { data, count } = await import('@/lib/supabase').then(m =>
+      m.supabase.from('persons').select('*', { count: 'exact' }).range(0, 49)
     );
+    setListTotal(count || 0);
     setPersons(data || []); setFilterQ(''); setLoading(false);
   };
 
@@ -383,12 +408,14 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
   });
 
   // ── Filtre local (dans les résultats par région/lenyol/all)
-  const filteredPersons = filterQ
-    ? persons.filter(p => {
-        const target = normalize([p.prenom, p.nom, p.clan, p.localite].filter(Boolean).join(' '));
-        return fuzzyScore(filterQ.trim(), target) !== Infinity;
-      })
-    : persons;
+  const filteredPersons = (tab === 'all' && filterQ.trim().length >= 2)
+    ? searchResults
+    : filterQ
+      ? persons.filter(p => {
+          const target = normalize([p.prenom, p.nom, p.clan, p.localite].filter(Boolean).join(' '));
+          return fuzzyScore(filterQ.trim(), target) !== Infinity;
+        })
+      : persons;
 
   // ── Liste triée + paginée (vue tabulaire)
   const sortedPersons = [...filteredPersons].sort((a, b) => {
@@ -396,12 +423,13 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
     if (sortCol === 'nom') { va = ((a.nom || '') + (a.prenom || '')).toLowerCase(); vb = ((b.nom || '') + (b.prenom || '')).toLowerCase(); }
     else if (sortCol === 'ethnie') { va = (a.ethnie || '').toLowerCase(); vb = (b.ethnie || '').toLowerCase(); }
     else if (sortCol === 'localite') { va = ((a.region || '') + (a.localite || '')).toLowerCase(); vb = ((b.region || '') + (b.localite || '')).toLowerCase(); }
-    else if (sortCol === 'naiss') { va = String(a.naiss_annee ?? 0); vb = String(b.naiss_annee ?? 0); }
+    else if (sortCol === 'naiss') { va = String(a.naiss_date ? new Date(a.naiss_date).getFullYear() : '?'); vb = String(b.naiss_date ? new Date(b.naiss_date).getFullYear() : '?'); }
     const cmp = va < vb ? -1 : va > vb ? 1 : 0;
     return sortDir === 'asc' ? cmp : -cmp;
   });
-  const totalListPages = Math.ceil(sortedPersons.length / PAGE_SIZE);
-  const pagePersons = sortedPersons.slice(listPage * PAGE_SIZE, (listPage + 1) * PAGE_SIZE);
+  const allTabFiltering = tab === 'all' && filterQ.trim().length >= 2;
+  const totalListPages = (tab === 'all' && !allTabFiltering) ? Math.ceil(listTotal / PAGE_SIZE) : Math.ceil(sortedPersons.length / PAGE_SIZE);
+  const pagePersons = (tab === 'all' && !allTabFiltering) ? sortedPersons : sortedPersons.slice(listPage * PAGE_SIZE, (listPage + 1) * PAGE_SIZE);
 
   // ── Groupes noms filtrés par la sidebar
   const filteredNomGroups = (tab === 'nom' && nomQ.trim())
@@ -502,47 +530,52 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
               )}
             </div>
           </div>
-        ) : viewMode === 'cards' ? (
-          <div className="folder-grid">
-            {searchResults.map(p => (
-              <PersonCard key={p.id} person={p} onClick={() => onShowPerson(p)} />
-            ))}
-          </div>
         ) : (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 32px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {([
-                    { key: 'nom',      label: 'Nom / Prénom',      width: '34%' },
-                    { key: 'ethnie',   label: 'Ethnie',             width: '20%' },
-                    { key: 'localite', label: 'Région / Localité',  width: '26%' },
-                    { key: 'naiss',    label: 'Naissance – Décès',  width: '20%' },
-                  ] as { key: typeof sortCol; label: string; width: string }[]).map(({ key, label, width }) => (
-                    <th key={key} style={{ width, padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '2px solid var(--bd)', whiteSpace: 'nowrap' }}>
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {searchResults.map((p, i) => (
-                  <tr key={p.id} onClick={() => onShowPerson(p)}
-                    style={{ background: i%2===0 ? 'rgba(255,255,255,0.7)' : 'transparent', cursor: 'pointer', transition: 'background 0.12s' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i%2===0 ? 'rgba(255,255,255,0.7)' : 'transparent'; }}
-                  >
-                    <td style={{ padding: '11px 12px', fontSize: 14, fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{p.prenom} {p.nom}</td>
-                    <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{p.ethnie || <span style={{ color: 'var(--t3)' }}>—</span>}</td>
-                    <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{[p.region, p.localite].filter(Boolean).join(' / ') || <span style={{ color: 'var(--t3)' }}>—</span>}</td>
-                    <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                      {p.naiss_annee ? String(p.naiss_annee) : '?'}{p.deceased && ` – ${p.deces_annee ? String(p.deces_annee) : '?'}`}
-                    </td>
-                  </tr>
+          <>
+            {viewMode === 'cards' ? (
+              <div className="folder-grid">
+                {searchResults.map(p => (
+                  <PersonCard key={p.id} person={p} onClick={() => onShowPerson(p)} />
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            ) : (
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 32px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      {([
+                        { key: 'nom',      label: 'Nom / Prénom',      width: '34%' },
+                        { key: 'ethnie',   label: 'Ethnie',             width: '20%' },
+                        { key: 'localite', label: 'Région / Localité',  width: '26%' },
+                        { key: 'naiss',    label: 'Naissance – Décès',  width: '20%' },
+                      ] as { key: typeof sortCol; label: string; width: string }[]).map(({ key, label, width }) => (
+                        <th key={key} style={{ width, padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '2px solid var(--bd)', whiteSpace: 'nowrap' }}>
+                          {label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {searchResults.map((p, i) => (
+                      <tr key={p.id} onClick={() => onShowPerson(p)}
+                        style={{ background: i%2===0 ? 'transparent' : 'var(--warm2)', cursor: 'pointer', transition: 'background 0.12s' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i%2===0 ? 'transparent' : 'var(--warm2)'; }}
+                      >
+                        <td style={{ padding: '11px 12px', fontSize: 14, fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{p.prenom} {p.nom}</td>
+                        <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{p.ethnie || <span style={{ color: 'var(--t3)' }}>—</span>}</td>
+                        <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{[p.region, p.localite].filter(Boolean).join(' / ') || <span style={{ color: 'var(--t3)' }}>—</span>}</td>
+                        <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                          {p.naiss_date ? new Date(p.naiss_date).getFullYear() : '?'}{p.deceased && ` – ${p.deces_date ? new Date(p.deces_date).getFullYear() : '•'}`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+          </>
         )}
       </div>
     );
@@ -718,9 +751,9 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                       onClick={() => router.push(`/registre/${REGION_SLUG_MAP[name]}`)}
                       className="fadein"
                       style={{
-                        background: 'rgba(255,255,255,0.85)',
+                        background: 'var(--warm)',
                         backdropFilter: 'blur(8px)',
-                        border: '1px solid rgba(255,255,255,0.6)',
+                        border: '1px solid var(--bd)',
                         borderRadius: '20px',
                         padding: '24px',
                         cursor: 'pointer',
@@ -744,7 +777,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           border: `1.5px solid ${accent}30`,
                         }}>
-                          <span style={{ fontSize: '22px', fontWeight: 800, color: accent, letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                          <span style={{ fontSize: '22px', fontWeight: 800, color: 'var(--t1)', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                             {code}
                           </span>
                         </div>
@@ -752,14 +785,14 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
 
                       {/* Nom + ethnies */}
                       <div style={{ marginBottom: '16px' }}>
-                        <div style={{ fontSize: '20px', fontWeight: 700, fontFamily: "'Cormorant Garamond', serif", color: accent, lineHeight: 1.2 }}>
+                        <div style={{ fontSize: '20px', fontWeight: 700, fontFamily: "'Cormorant Garamond', serif", color: 'var(--t1)', lineHeight: 1.2 }}>
                           {nameShort}
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
                           {ethnies.map(e => (
                             <span key={e} style={{
                               fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-                              background: accent + '15', color: accent, fontWeight: 600,
+                              background: accent + '25', color: 'var(--t1)', fontWeight: 600,
                               fontFamily: "'Plus Jakarta Sans', sans-serif",
                             }}>
                               {e}
@@ -775,19 +808,19 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                           { val: personnes, label: 'personnes' },
                           { val: localites, label: 'lieux'     },
                         ].map(({ val, label }) => (
-                          <div key={label} style={{ flex: 1, background: 'rgba(255,255,255,0.6)', borderRadius: '10px', padding: '8px 4px', textAlign: 'center' }}>
-                            <div style={{ fontSize: '18px', fontWeight: 700, color: accent }}>{val}</div>
-                            <div style={{ fontSize: '10px', color: 'var(--t3)', marginTop: '2px' }}>{label}</div>
+                          <div key={label} style={{ flex: 1, background: 'var(--warm2)', borderRadius: '10px', padding: '8px 4px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--t1)' }}>{val}</div>
+                            <div style={{ fontSize: '10px', color: 'var(--t2)', marginTop: '2px' }}>{label}</div>
                           </div>
                         ))}
                       </div>
 
                       {/* Footer */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--t3)' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--t2)' }}>
                           {lastDate ? `Mis à jour ${timeAgo(lastDate)}` : 'Aucune donnée'}
                         </span>
-                        <span style={{ fontSize: '18px', color: accent, fontWeight: 700 }}>→</span>
+                        <span style={{ fontSize: '18px', color: 'var(--t2)', fontWeight: 700 }}>→</span>
                       </div>
                     </div>
                   );
@@ -798,9 +831,9 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                   onClick={() => pickRegion('__nr__')}
                   className="fadein"
                   style={{
-                    background: 'rgba(255,255,255,0.85)',
+                    background: 'var(--warm)',
                     backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255,255,255,0.6)',
+                    border: '1px solid var(--bd)',
                     borderRadius: '20px',
                     padding: '24px',
                     cursor: 'pointer',
@@ -820,21 +853,21 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                     🔍
                   </div>
                   <div style={{ marginBottom: '16px' }}>
-                    <div style={{ fontSize: '20px', fontWeight: 700, fontFamily: "'Cormorant Garamond', serif", color: '#2e2e2e', lineHeight: 1.2 }}>
+                    <div style={{ fontSize: '20px', fontWeight: 700, fontFamily: "'Cormorant Garamond', serif", color: 'var(--t1)', lineHeight: 1.2 }}>
                       Origine inconnue
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--t3)', marginTop: '3px' }}>Région non renseignée</div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.6)', borderRadius: '10px', padding: '8px 4px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 700, color: '#2e2e2e' }}>
+                    <div style={{ flex: 1, background: 'var(--warm2)', borderRadius: '10px', padding: '8px 4px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--t1)' }}>
                         {allPersonsLight.filter(p => !p.region).length}
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--t3)', marginTop: '2px' }}>personnes</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                    <span style={{ fontSize: '18px', color: '#2e2e2e', fontWeight: 700 }}>→</span>
+                    <span style={{ fontSize: '18px', color: 'var(--t1)', fontWeight: 700 }}>→</span>
                   </div>
                 </div>
               </div>
@@ -845,7 +878,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                 {currentDepartements.map(([dep, locs]) => (
                   <div key={dep} style={{ marginBottom: '28px' }}>
                     <div
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px 0 10px', borderBottom: '1px solid rgba(255,255,255,0.4)', marginBottom: '12px', cursor: 'pointer' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px 0 10px', borderBottom: '1px solid var(--bd)', marginBottom: '12px', cursor: 'pointer' }}
                       onClick={() => router.push(`/registre/${REGION_SLUG_MAP[regionSel!]}/${slugify(dep)}`)}
                     >
                       <span style={{ fontSize: '13px' }}>📍</span>
@@ -859,9 +892,9 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                           className="fadein"
                           onClick={() => router.push(`/registre/${REGION_SLUG_MAP[regionSel!]}/${slugify(dep)}/${slugify(loc)}`)}
                           style={{
-                            background: 'rgba(255,255,255,0.75)',
+                            background: 'var(--warm)',
                             backdropFilter: 'blur(8px)',
-                            border: '1px solid rgba(255,255,255,0.6)',
+                            border: '1px solid var(--bd)',
                             borderRadius: '20px',
                             padding: '16px',
                             cursor: 'pointer',
@@ -893,9 +926,9 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                     className="fadein"
                     onClick={() => pickLocalite('__nr__')}
                     style={{
-                      background: 'rgba(255,255,255,0.75)',
+                      background: 'var(--warm2)',
                       backdropFilter: 'blur(8px)',
-                      border: '1px solid rgba(255,255,255,0.6)',
+                      border: '1px solid var(--bd)',
                       borderRadius: '20px',
                       padding: '16px',
                       cursor: 'pointer',
@@ -924,9 +957,9 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                       onClick={() => router.push(`/registre/${slugify(name)}`)}
                       className="fadein"
                       style={{
-                        background: 'rgba(255,255,255,0.88)',
+                        background: 'var(--warm)',
                         backdropFilter: 'blur(8px)',
-                        border: '1px solid rgba(255,255,255,0.6)',
+                        border: '1px solid var(--bd)',
                         borderRadius: '20px',
                         padding: '28px 24px',
                         cursor: 'pointer',
@@ -998,11 +1031,11 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                             style={{
                               width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontSize: '12px', fontWeight: 700, color: 'var(--t2)', borderRadius: '8px',
-                              background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(0,0,0,0.07)',
+                              background: 'var(--warm2)', border: '1px solid rgba(0,0,0,0.07)',
                               textDecoration: 'none', transition: 'background 0.15s',
                             }}
                             onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(45,90,61,0.1)'}
-                            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.7)'}
+                            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = 'var(--warm2)'}
                           >
                             {l}
                           </a>
@@ -1020,9 +1053,9 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                             {l}
                           </div>
                           <div style={{
-                            background: 'rgba(255,255,255,0.8)',
+                            background: 'var(--warm)',
                             backdropFilter: 'blur(8px)',
-                            border: '1px solid rgba(255,255,255,0.6)',
+                            border: '1px solid var(--bd)',
                             borderRadius: '16px',
                             overflow: 'hidden',
                             boxShadow: '0 2px 12px rgba(20,18,13,0.05)',
@@ -1067,9 +1100,9 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                   <div className="empty-grid">Aucun contributeur trouvé.</div>
                 ) : (
                   <div style={{
-                    background: 'rgba(255,255,255,0.85)',
+                    background: 'var(--warm)',
                     backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255,255,255,0.6)',
+                    border: '1px solid var(--bd)',
                     borderRadius: '20px',
                     overflow: 'hidden',
                     boxShadow: '0 4px 20px rgba(20,18,13,0.08)',
@@ -1128,9 +1161,9 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
               <div style={{ padding: '24px 32px 24px var(--page-left)', overflowY: 'auto', flex: 1 }}>
                 {/* En-tête profil */}
                 <div style={{
-                  background: 'rgba(255,255,255,0.85)',
+                  background: 'var(--warm)',
                   backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(255,255,255,0.6)',
+                  border: '1px solid var(--bd)',
                   borderRadius: '20px',
                   padding: '20px 24px',
                   marginBottom: '20px',
@@ -1251,7 +1284,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                             key={p.id}
                             onClick={() => onShowPerson(p)}
                             style={{
-                              background: i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent',
+                              background: i % 2 === 0 ? 'transparent' : 'var(--warm2)',
                               cursor: 'pointer',
                               transition: 'background 0.12s',
                             }}
@@ -1259,7 +1292,7 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                               (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)';
                             }}
                             onMouseLeave={e => {
-                              (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent';
+                              (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'var(--warm2)';
                             }}
                           >
                             <td style={{ padding: '11px 12px', fontSize: '14px', fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
@@ -1272,8 +1305,8 @@ export default function RegistreView({ onShowPerson, onOpenAuth }: RegistreViewP
                               {[p.region, p.localite].filter(Boolean).join(' / ') || <span style={{ color: 'var(--t3)' }}>—</span>}
                             </td>
                             <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                              {p.naiss_annee ? String(p.naiss_annee) : '?'}
-                              {p.deceased && ` – ${p.deces_annee ? String(p.deces_annee) : '?'}`}
+                              {p.naiss_date ? new Date(p.naiss_date).getFullYear() : '?'}
+                              {p.deceased && ` – ${p.deces_date ? new Date(p.deces_date).getFullYear() : '•'}`}
                             </td>
                           </tr>
                         ))}

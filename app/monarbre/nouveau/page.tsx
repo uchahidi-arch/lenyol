@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppState } from '@/hooks/useAppState';
 import { useAuth } from '@/hooks/useAuth';
 import { useDB } from '@/hooks/useDB';
+import PhotoUpload from '@/components/PhotoUpload';
 import type { Ethnie, RegionSenegal } from '@/lib/types';
 
 type Genre   = 'M' | 'F';
@@ -53,9 +54,13 @@ function NouveauForm() {
   const [decesDate, setDecesDate] = useState('');
   const [metier,    setMetier]    = useState('');
   const [notes,     setNotes]     = useState('');
+  const [telephone, setTelephone] = useState('');
+  const [adresse,   setAdresse]   = useState('');
   const [advOpen,   setAdvOpen]   = useState(!!relation);
   const [loading,   setLoading]   = useState(false);
   const [doublons,  setDoublons]  = useState<any[]>([]);
+  const [newPersonId, setNewPersonId] = useState<string | null>(null);
+  const [photoUrl,  setPhotoUrl]  = useState<string | null>(null);
 
   const doublonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -155,11 +160,16 @@ function NouveauForm() {
         deces_annee: status === 'dead' && decesDate.trim() ? parseInt(String(decesDate.trim())) : null,
         metier: metier.trim(),
         notes: notes.trim(),
+        telephone: telephone.trim(),
+        adresse: adresse.trim(),
         ethnie: (ethnie as Ethnie) || null,
       });
+      // Stocker l'ID pour l'upload de photo
+      setNewPersonId(np.id);
       if (relation && relatedId) await handleRelation(np.id, genre);
       await loadMyData();
-      router.push(`/monarbre/${np.id}`);
+      // Rediriger vers la page de modification pour ajouter la photo
+      router.push(`/monarbre/${np.id}/modifier`);
     } catch (err: any) {
       alert('Erreur : ' + err.message);
     }
@@ -212,6 +222,18 @@ function NouveauForm() {
           <strong style={{ color: 'var(--green)' }}>{related.prenom} {related.nom || ''}</strong>
         </div>
       )}
+
+      {/* Photo preview - upload happens after creation */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+        <PhotoUpload
+          currentPhotoUrl={photoUrl}
+          bucketPath={newPersonId ? `${newPersonId}.jpg` : 'temp.jpg'}
+          prenom={prenom}
+          size={120}
+          onUpload={(newUrl) => setPhotoUrl(newUrl)}
+          onError={(err) => alert(err)}
+        />
+      </div>
 
       {/* Genre */}
       <div style={{ marginBottom: 20 }}>
@@ -404,6 +426,21 @@ function NouveauForm() {
           <div>
             <label className="f-lbl">Métier / Titre</label>
             <input className="f-input" placeholder="Journaliste, Marabout, Enseignant…" value={metier} onChange={e => setMetier(e.target.value)} />
+          </div>
+
+          {/* Coordonnées */}
+          <div style={{ borderTop: '1px solid var(--bd)', paddingTop: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t2)', marginBottom: 12 }}>Coordonnées</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label className="f-lbl">Téléphone</label>
+                <input className="f-input" placeholder="Ex: +221 77 000 00 00" value={telephone} onChange={e => setTelephone(e.target.value)} />
+              </div>
+              <div>
+                <label className="f-lbl">Adresse</label>
+                <input className="f-input" placeholder="Ex: Dakar, Médina" value={adresse} onChange={e => setAdresse(e.target.value)} />
+              </div>
+            </div>
           </div>
 
           {/* Notes */}

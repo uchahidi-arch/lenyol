@@ -56,8 +56,8 @@ interface PersonRow {
   ethnie: string | null;
   region: string | null;
   localite: string | null;
-  naiss_annee: number | null;
-  deces_annee: number | null;
+  naiss_date: string | null;
+  deces_date: string | null;
   deceased: boolean | null;
 }
 
@@ -71,11 +71,18 @@ function RegionView({ regionSlug }: { regionSlug: string }) {
 
   useEffect(() => {
     import('@/lib/supabase').then(async ({ supabase }) => {
+      const { data: publicTrees } = await supabase.from('trees').select('id').eq('prive', false);
+      const publicIds = (publicTrees ?? []).map((t: { id: string }) => t.id);
+      const treeFilter = publicIds.length > 0
+        ? `tree_id.is.null,tree_id.in.(${publicIds.join(',')})`
+        : 'tree_id.is.null';
+
       const { data } = await supabase
         .from('persons')
-        .select('id, prenom, nom, ethnie, region, localite, naiss_annee, deces_annee, deceased')
+        .select('id, prenom, nom, ethnie, region, localite, naiss_date, deces_date, deceased')
         .eq('region', regionName)
         .eq('masque', false)
+        .or(treeFilter)
         .order('nom', { ascending: true });
       setPersons((data ?? []) as PersonRow[]);
       setLoading(false);
@@ -153,7 +160,7 @@ function RegionView({ regionSlug }: { regionSlug: string }) {
                     key={p.id}
                     onClick={() => router.push(`/registre/${p.id}`)}
                     style={{
-                      background: i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent',
+                      background: i % 2 === 0 ? 'var(--warm2)' : 'transparent',
                       cursor: 'pointer',
                       transition: 'background 0.12s',
                     }}
@@ -162,10 +169,10 @@ function RegionView({ regionSlug }: { regionSlug: string }) {
                     }}
                     onMouseLeave={e => {
                       (e.currentTarget as HTMLTableRowElement).style.background =
-                        i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent';
+                        i % 2 === 0 ? 'var(--warm2)' : 'transparent';
                     }}
                   >
-                    <td style={{ padding: '11px 12px', fontSize: '14px', fontWeight: 600, color: meta.accent, fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <td style={{ padding: '11px 12px', fontSize: '14px', fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                       {p.prenom} {p.nom?.toUpperCase()}
                     </td>
                     <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
@@ -175,8 +182,8 @@ function RegionView({ regionSlug }: { regionSlug: string }) {
                       {[p.region, p.localite].filter(Boolean).join(', ') || <span style={{ color: 'var(--t3)' }}>—</span>}
                     </td>
                     <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                      {p.naiss_annee ?? '?'}
-                      {p.deceased && ` – ${p.deces_annee ?? '†'}`}
+                      {p.naiss_date ? new Date(p.naiss_date).getFullYear() : '?'}
+                      {p.deceased && ` – ${p.deces_date ? new Date(p.deces_date).getFullYear() : '•'}`}
                     </td>
                   </tr>
                 ))}
@@ -196,11 +203,18 @@ function EthnieView({ ethnieLabel }: { ethnieLabel: string }) {
 
   useEffect(() => {
     import('@/lib/supabase').then(async ({ supabase }) => {
+      const { data: publicTrees } = await supabase.from('trees').select('id').eq('prive', false);
+      const publicIds = (publicTrees ?? []).map((t: { id: string }) => t.id);
+      const treeFilter = publicIds.length > 0
+        ? `tree_id.is.null,tree_id.in.(${publicIds.join(',')})`
+        : 'tree_id.is.null';
+
       const { data } = await supabase
         .from('persons')
-        .select('id, prenom, nom, ethnie, region, localite, naiss_annee, deces_annee, deceased')
+        .select('id, prenom, nom, ethnie, region, localite, naiss_date, deces_date, deceased')
         .eq('ethnie', ethnieLabel)
         .eq('masque', false)
+        .or(treeFilter)
         .order('nom', { ascending: true });
       setPersons((data ?? []) as PersonRow[]);
       setLoading(false);
@@ -256,11 +270,11 @@ function EthnieView({ ethnieLabel }: { ethnieLabel: string }) {
                   <tr
                     key={p.id}
                     onClick={() => router.push(`/registre/${p.id}`)}
-                    style={{ background: i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent', cursor: 'pointer', transition: 'background 0.12s' }}
+                    style={{ background: i % 2 === 0 ? 'var(--warm2)' : 'transparent', cursor: 'pointer', transition: 'background 0.12s' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'var(--warm2)' : 'transparent'; }}
                   >
-                    <td style={{ padding: '11px 12px', fontSize: '14px', fontWeight: 600, color: '#1a3d2e', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <td style={{ padding: '11px 12px', fontSize: '14px', fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                       {p.prenom} {p.nom?.toUpperCase()}
                     </td>
                     <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
@@ -270,8 +284,8 @@ function EthnieView({ ethnieLabel }: { ethnieLabel: string }) {
                       {[p.region, p.localite].filter(Boolean).join(', ') || <span style={{ color: 'var(--t3)' }}>—</span>}
                     </td>
                     <td style={{ padding: '11px 12px', fontSize: '13px', color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                      {p.naiss_annee ?? '?'}
-                      {p.deceased && ` – ${p.deces_annee ?? '†'}`}
+                      {p.naiss_date ? new Date(p.naiss_date).getFullYear() : '?'}
+                      {p.deceased && ` – ${p.deces_date ? new Date(p.deces_date).getFullYear() : '•'}`}
                     </td>
                   </tr>
                 ))}

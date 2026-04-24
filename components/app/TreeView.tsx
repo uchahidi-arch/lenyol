@@ -450,7 +450,7 @@ export default function TreeView({
                       }
                     </div>
                     <div className="child-prenom">
-                      {k.prenom}{k.deceased ? ' †' : ''}
+                      {k.prenom}{k.deceased ? ' •' : ''}
                       {k.masque && ' ·'}
                     </div>
                     <div className="child-nom">{k.nom || '—'}</div>
@@ -670,7 +670,7 @@ function NodePopover({
         top: pos?.top ?? -9999,
         zIndex: 300,
         visibility: pos ? 'visible' : 'hidden',
-        background: 'rgba(255,255,255,0.97)',
+        background: 'var(--warm)',
         backdropFilter: 'blur(16px)',
         border: '1px solid rgba(0,0,0,0.1)',
         borderRadius: '16px',

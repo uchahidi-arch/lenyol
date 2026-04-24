@@ -43,7 +43,7 @@ function GpCard({ p }: { p: P }) {
       {p.lenyol && (
         <div style={{ fontSize: 9, color: 'var(--gold)', marginTop: 3 }}>⬡ {p.lenyol}</div>
       )}
-      <div style={{ fontSize: 9, marginTop: 3, color: p.deceased ? 'var(--t3)' : '#2D7A54' }}>
+      <div style={{ fontSize: 9, marginTop: 3, color: p.deceased ? 'var(--t3)' : 'var(--green2)' }}>
         {p.deceased ? '🕊️ Décédé·e' : '🟢 En vie'}
       </div>
     </div>
@@ -63,7 +63,7 @@ function ParentCard({ p }: { p: P }) {
       {p.lenyol && (
         <div style={{ fontSize: 9, color: 'var(--gold)', marginTop: 3 }}>⬡ {p.lenyol}</div>
       )}
-      <div style={{ fontSize: 9, marginTop: 3, color: p.deceased ? 'var(--t3)' : '#2D7A54' }}>
+      <div style={{ fontSize: 9, marginTop: 3, color: p.deceased ? 'var(--t3)' : 'var(--green2)' }}>
         {p.deceased ? '🕊️ Décédé·e' : '🟢 En vie'}
       </div>
     </div>

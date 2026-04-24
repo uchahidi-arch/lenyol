@@ -345,12 +345,12 @@ export default function MonArbreView() {
                   key={p.id}
                   onClick={() => router.push(`/monarbre/${p.id}`)}
                   style={{
-                    background: i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent',
+                    background: i % 2 === 0 ? 'transparent' : 'var(--warm2)',
                     cursor: 'pointer',
                     transition: 'background 0.12s',
                   }}
                   onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'transparent'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'var(--warm2)'; }}
                 >
                   <td style={{ padding: '11px 12px', fontSize: '14px', fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                     {p.prenom} {p.nom}

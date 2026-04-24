@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 520" fill="none">
+  <!-- Racines -->
+  <path d="M108 430 Q78 462 52 485 Q36 500 18 510" stroke="#113B2E" stroke-width="16" stroke-linecap="round"/>
+  <path d="M116 438 Q100 468 92 492 Q88 506 85 520" stroke="#113B2E" stroke-width="11" stroke-linecap="round"/>
+  <path d="M130 442 Q130 472 130 500 Q130 510 130 520" stroke="#113B2E" stroke-width="11" stroke-linecap="round"/>
+  <path d="M144 438 Q160 468 168 492 Q172 506 175 520" stroke="#113B2E" stroke-width="11" stroke-linecap="round"/>
+  <path d="M152 430 Q182 462 208 485 Q224 500 242 510" stroke="#113B2E" stroke-width="16" stroke-linecap="round"/>
+
+  <!-- Tronc massif -->
+  <path d="M84 435 C72 400 70 360 72 310 C68 260 70 200 76 160 L100 155 L106 158 C100 198 98 258 102 310 C98 360 100 400 116 435 Z" fill="#113B2E"/>
+  <path d="M176 435 C188 400 190 360 188 310 C192 260 190 200 184 160 L160 155 L154 158 C160 198 162 258 158 310 C162 360 160 400 144 435 Z" fill="#113B2E"/>
+  <rect x="100" y="155" width="60" height="282" fill="#113B2E"/>
+
+  <!-- Base couronne (jonction tronc-branches) -->
+  <ellipse cx="130" cy="162" rx="34" ry="14" fill="#113B2E"/>
+
+  <!-- Branches principales — comme des racines inversées -->
+  <!-- Centre haut -->
+  <path d="M130 165 L130 80" stroke="#113B2E" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- Branche gauche principale -->
+  <path d="M125 140 Q90 118 55 128" stroke="#113B2E" stroke-width="18" stroke-linecap="round"/>
+  <!-- Branche droite principale -->
+  <path d="M135 140 Q170 118 205 128" stroke="#113B2E" stroke-width="18" stroke-linecap="round"/>
+
+  <!-- Branche gauche lointaine -->
+  <path d="M126 115 Q85 88 42 98" stroke="#113B2E" stroke-width="15" stroke-linecap="round"/>
+  <!-- Branche droite lointaine -->
+  <path d="M134 115 Q175 88 218 98" stroke="#113B2E" stroke-width="15" stroke-linecap="round"/>
+
+  <!-- Sous-branches gauche -->
+  <path d="M55 128 Q36 112 15 106" stroke="#113B2E" stroke-width="10" stroke-linecap="round"/>
+  <path d="M55 128 Q44 144 28 152" stroke="#113B2E" stroke-width="10" stroke-linecap="round"/>
+  <path d="M42 98 Q24 82 8 72" stroke="#113B2E" stroke-width="9" stroke-linecap="round"/>
+  <path d="M42 98 Q40 116 30 130" stroke="#113B2E" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- Sous-branches droite -->
+  <path d="M205 128 Q224 112 245 106" stroke="#113B2E" stroke-width="10" stroke-linecap="round"/>
+  <path d="M205 128 Q216 144 232 152" stroke="#113B2E" stroke-width="10" stroke-linecap="round"/>
+  <path d="M218 98 Q236 82 252 72" stroke="#113B2E" stroke-width="9" stroke-linecap="round"/>
+  <path d="M218 98 Q220 116 230 130" stroke="#113B2E" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- Pointes centre -->
+  <path d="M130 80 Q120 58 112 38" stroke="#113B2E" stroke-width="9" stroke-linecap="round"/>
+  <path d="M130 80 Q140 58 148 38" stroke="#113B2E" stroke-width="9" stroke-linecap="round"/>
+  <path d="M130 80 Q128 55 126 30" stroke="#113B2E" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Pointes gauche -->
+  <path d="M15 106 Q4 88 0 68" stroke="#113B2E" stroke-width="7" stroke-linecap="round"/>
+  <path d="M15 106 Q20 90 24 74" stroke="#113B2E" stroke-width="7" stroke-linecap="round"/>
+  <path d="M8 72 Q2 54 0 36" stroke="#113B2E" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Pointes droite -->
+  <path d="M245 106 Q256 88 260 68" stroke="#113B2E" stroke-width="7" stroke-linecap="round"/>
+  <path d="M245 106 Q240 90 236 74" stroke="#113B2E" stroke-width="7" stroke-linecap="round"/>
+  <path d="M252 72 Q258 54 260 36" stroke="#113B2E" stroke-width="6" stroke-linecap="round"/>
+</svg>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 
 interface HomeNavProps {
   onNavigateToApp: () => void;
@@ -14,6 +15,7 @@ const SEARCH_CATS = ['Famille', 'Personne', 'Histoire', 'Royaume'];
 
 export default function HomeNav({ onNavigateToApp, onOpenAuth }: HomeNavProps) {
   const { user, profile, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const router   = useRouter();
   const pathname = usePathname();
   const isHome   = pathname === '/';
@@ -84,7 +86,7 @@ export default function HomeNav({ onNavigateToApp, onOpenAuth }: HomeNavProps) {
       <nav className={`ln-nav${scrolled ? ' scrolled' : ''}`}>
 
         {/* Logo */}
-        <button className="ln-logo" onClick={goHome}>Lenyol</button>
+        <button className="ln-logo" onClick={goHome}><img src={theme === 'light' ? '/logo.png' : '/logo_dim.png'} alt="Lenyol" height="36" /></button>
 
         {/* Desktop links */}
         <div className="ln-nav-center">
@@ -103,6 +105,8 @@ export default function HomeNav({ onNavigateToApp, onOpenAuth }: HomeNavProps) {
               <button className="ln-dd-item" onClick={() => { close(); router.push('/monarbre/prive'); }}>Arbre privé</button>
               <button className="ln-dd-item" onClick={() => { close(); onNavigateToApp(); }}>Voir un autre arbre</button>
               <div className="ln-dd-sep" />
+              <button className="ln-dd-item" onClick={() => { close(); router.push('/livre'); }}>Livre de famille</button>
+              <button className="ln-dd-item" onClick={() => { close(); router.push('/capsule'); }}>Capsule temporelle</button>
               <button className="ln-dd-item" onClick={() => { close(); router.push('/monarbre/export'); }}>Exporter mon arbre</button>
             </div>
           </div>
@@ -126,12 +130,41 @@ export default function HomeNav({ onNavigateToApp, onOpenAuth }: HomeNavProps) {
           {/* Griot */}
           <Link href="/griot" className="ln-link" onClick={close}>Griot</Link>
 
+          {/* Chronologie */}
+          <Link href="/timeline" className="ln-link" onClick={close}>Chronologie</Link>
+
+          {/* Carte */}
+          <Link href="/carte" className="ln-link" onClick={close}>Carte</Link>
+
           {/* Rechercher */}
           <button className="ln-link" onClick={() => setSearchOpen(true)}>Rechercher</button>
         </div>
 
         {/* Right actions */}
         <div className="ln-actions">
+          {/* Theme toggle */}
+          <button className="ln-theme-toggle" onClick={toggleTheme} aria-label="Changer le thème">
+            {theme === 'light' && (
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+            )}
+            {theme === 'mid' && (
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="currentColor"/>
+              </svg>
+            )}
+            {theme === 'dark' && (
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            )}
+          </button>
+
           {!user ? (
             <>
               <button className="ln-btn-login" onClick={() => onOpenAuth('login')}>Se connecter</button>
@@ -146,6 +179,7 @@ export default function HomeNav({ onNavigateToApp, onOpenAuth }: HomeNavProps) {
               </div>
               <div className={`ln-user-dd${userOpen ? ' open' : ''}`}>
                 <button className="ln-dd-item" onClick={() => { setUserOpen(false); router.push('/monarbre'); }}>Mon Arbre</button>
+                <button className="ln-dd-item" onClick={() => { setUserOpen(false); router.push('/carte'); }}>Carte</button>
                 <button className="ln-dd-item" onClick={() => { setUserOpen(false); router.push('/profil'); }}>Profil</button>
                 <div className="ln-dd-sep" />
                 <button className="ln-dd-item" style={{ color: '#c0392b' }} onClick={() => { signOut(); setUserOpen(false); }}>Déconnexion</button>
@@ -167,9 +201,13 @@ export default function HomeNav({ onNavigateToApp, onOpenAuth }: HomeNavProps) {
       {mobileOpen && (
         <div className="ln-mobile-menu">
           <button className="ln-mm-link" onClick={() => { close(); router.push('/monarbre'); }}>Mon Arbre</button>
+          <button className="ln-mm-link" onClick={() => { close(); router.push('/livre'); }}>Livre de famille</button>
+          <button className="ln-mm-link" onClick={() => { close(); router.push('/capsule'); }}>Capsule temporelle</button>
           <button className="ln-mm-link" onClick={() => { close(); onNavigateToApp(); }}>Registre</button>
           <button className="ln-mm-link" onClick={() => { close(); router.push('/registre/lenyol'); }}>Lignées</button>
           <Link href="/griot" className="ln-mm-link" onClick={close}>Griot</Link>
+          <Link href="/timeline" className="ln-mm-link" onClick={close}>Chronologie</Link>
+          <Link href="/carte" className="ln-mm-link" onClick={close}>Carte</Link>
           <button className="ln-mm-link" onClick={() => { setMobileOpen(false); setSearchOpen(true); }}>Rechercher</button>
           <div className="ln-mm-divider" />
           <div className="ln-mm-auth">

@@ -32,13 +32,13 @@ function RegistreLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <RegistreSearchCtx.Provider value={{ searchQ, sidebarCbs }}>
       <SidebarProvider>
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f9f9f7' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
           <Toast />
           <HomeNav
             onNavigateToApp={() => router.push('/registre')}
             onOpenAuth={(tab) => { setAuthTab(tab); setAuthOpen(true); }}
           />
-          <div style={{ display: 'flex', flex: 1, paddingTop: '72px' }}>
+          <div style={{ display: 'flex', flex: 1, paddingTop: '96px' }}>
             <AppSidebar registreCbs={sidebarCbs} />
             <main style={{ flex: 1, minWidth: 0, '--page-left': '32px' } as React.CSSProperties}>
               {children}

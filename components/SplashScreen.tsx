@@ -120,7 +120,7 @@ export default function SplashScreen() {
       }}>
         <div style={{
           height: '100%',
-          background: 'linear-gradient(90deg, #1A5C3E, #2D7A54)',
+          background: 'linear-gradient(90deg, var(--green2), var(--green3))',
           borderRadius: 10,
           animation: 'splashBar 1.9s cubic-bezier(0.4,0,0.2,1) forwards',
         }} />

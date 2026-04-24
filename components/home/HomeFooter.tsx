@@ -9,7 +9,7 @@ export default function HomeFooter() {
 
         {/* Col 1 — Brand */}
         <div>
-          <div className="ln-footer-logo">Lenyol</div>
+          <div className="ln-footer-logo"><img src="/logo_dim.png" alt="Lenyol" height="28" /></div>
           <p className="ln-footer-tagline">
             Préservez votre lignée. Transmettez votre histoire.
             La mémoire généalogique sénégalaise, pour les générations à venir.

@@ -216,7 +216,7 @@ export default function RelierModal({
             style={{
               padding: '8px 16px', fontSize: '14px', cursor: !selectedMyPersonId || !selectedRole || loading ? 'not-allowed' : 'pointer',
               border: 'none', borderRadius: '8px',
-              background: '#1A5C3E', color: 'white',
+              background: 'var(--green2)', color: 'white',
               opacity: !selectedMyPersonId || !selectedRole || loading ? 0.4 : 1,
               fontFamily: 'inherit', transition: '0.15s',
             }}

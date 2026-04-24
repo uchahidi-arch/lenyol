@@ -34,6 +34,12 @@ export default function CreateurProfilePage({
 
   useEffect(() => {
     import('@/lib/supabase').then(async ({ supabase }) => {
+      const { data: publicTrees } = await supabase.from('trees').select('id').eq('prive', false);
+      const publicIds = (publicTrees ?? []).map((t: { id: string }) => t.id);
+      const treeFilter = publicIds.length > 0
+        ? `tree_id.is.null,tree_id.in.(${publicIds.join(',')})`
+        : 'tree_id.is.null';
+
       const pageSize = 1000;
       let page = 0;
       let all: Person[] = [];
@@ -42,6 +48,7 @@ export default function CreateurProfilePage({
           .from('persons')
           .select('*')
           .eq('created_by_name', decodedName)
+          .or(treeFilter)
           .order('prenom', { ascending: true })
           .range(page * pageSize, (page + 1) * pageSize - 1);
         if (!data || data.length === 0) break;
@@ -165,9 +172,9 @@ export default function CreateurProfilePage({
                         return sortDir === 'asc' ? cmp : -cmp;
                       }).map((p, i) => (
                         <tr key={p.id} onClick={() => router.push(`/registre/${p.id}`)}
-                          style={{ background: i%2===0 ? 'rgba(255,255,255,0.7)' : 'transparent', cursor: 'pointer', transition: 'background 0.12s' }}
+                          style={{ background: i%2===0 ? 'var(--warm2)' : 'transparent', cursor: 'pointer', transition: 'background 0.12s' }}
                           onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(45,106,79,0.07)'; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i%2===0 ? 'rgba(255,255,255,0.7)' : 'transparent'; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i%2===0 ? 'var(--warm2)' : 'transparent'; }}
                         >
                           <td style={{ padding: '11px 12px', fontSize: 14, fontWeight: 600, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{p.prenom} {p.nom}</td>
                           <td style={{ padding: '11px 12px', fontSize: 13, color: 'var(--t2)', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{p.clan || <span style={{ color: 'var(--t3)' }}>—</span>}</td>

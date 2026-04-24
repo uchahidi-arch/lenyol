@@ -12,8 +12,6 @@ import type { Person, Union } from '@/lib/types';
 
 type FicheTab = 'fiche' | 'arbre';
 
-
-
 export default function PersonView({ id }: { id: string }) {
   const router = useRouter();
   const { user, profile } = useAuth();
@@ -22,108 +20,68 @@ export default function PersonView({ id }: { id: string }) {
 
   const [tab, setTab] = useState<FicheTab>('fiche');
   const [loading, setLoading] = useState(true);
+  const [relLoading, setRelLoading] = useState(false);
   const [person, setPerson] = useState<Person | null>(null);
   const [parentUnion, setParentUnion] = useState<Union | null>(null);
   const [childUnions, setChildUnions] = useState<Union[]>([]);
   const [personMap, setPersonMap] = useState<Map<string, Person>>(new Map());
-  const [fullSibIds, setFullSibIds] = useState<string[]>([]);
-  const [halfFatherIds, setHalfFatherIds] = useState<string[]>([]);
-  const [halfMotherIds, setHalfMotherIds] = useState<string[]>([]);
   const [relierTarget, setRelierTarget] = useState<Person | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setRelLoading(false);
     setPerson(null);
     setParentUnion(null);
     setChildUnions([]);
     setPersonMap(new Map());
-    setFullSibIds([]);
-    setHalfFatherIds([]);
-    setHalfMotherIds([]);
 
     (async () => {
       const { supabase } = await import('@/lib/supabase');
 
-      const [{ data: pData }, { data: puData }, { data: cuData }] = await Promise.all([
-        supabase.from('persons').select('*').eq('id', id).single(),
-        supabase.from('unions').select('*').contains('enfants_ids', [id]).limit(1),
-        supabase.from('unions').select('*').or(`pere_id.eq.${id},mere_id.eq.${id}`),
-      ]);
-
+      // Phase 1: fetch person only — show the page quickly
+      const { data: pData } = await supabase.from('persons').select('*').eq('id', id).single();
       if (cancelled) return;
 
-      const p = pData as Person | null;
-      const pu = (puData as Union[] | null)?.[0] ?? null;
+      setPerson(pData as Person | null);
+      setLoading(false);
+      if (!pData) return;
+
+      // Phase 2: fetch relationships in parallel
+      setRelLoading(true);
+      const [{ data: cuData }, { data: puData }, { data: dcData }] = await Promise.all([
+        supabase.from('unions').select('*').or(`pere_id.eq.${id},mere_id.eq.${id}`),
+        supabase.from('unions').select('*').contains('enfants_ids', [id]).limit(1),
+        supabase.from('persons').select('*').eq('pere_id', id),
+      ]);
+      if (cancelled) return;
+
       const cus = (cuData as Union[] | null) ?? [];
+      const pu = (puData as Union[] | null)?.[0] ?? null;
 
-      setPerson(p);
-      setParentUnion(pu);
       setChildUnions(cus);
+      setParentUnion(pu);
 
-      let fullSibU: Union[] = [];
-      let halfFatherU: Union[] = [];
-      let halfMotherU: Union[] = [];
-
-      if (pu) {
-        const orParts: string[] = [];
-        if (pu.pere_id) orParts.push(`pere_id.eq.${pu.pere_id}`);
-        if (pu.mere_id) orParts.push(`mere_id.eq.${pu.mere_id}`);
-
-        if (orParts.length > 0) {
-          const { data: sibData } = await supabase
-            .from('unions').select('*').or(orParts.join(','));
-          if (cancelled) return;
-
-          const allPU = (sibData as Union[] | null) ?? [];
-          fullSibU = allPU.filter(u => u.pere_id === pu.pere_id && u.mere_id === pu.mere_id && u.id !== pu.id);
-          halfFatherU = pu.pere_id
-            ? allPU.filter(u => u.pere_id === pu.pere_id && u.mere_id !== pu.mere_id && u.id !== pu.id)
-            : [];
-          halfMotherU = pu.mere_id
-            ? allPU.filter(u => u.mere_id === pu.mere_id && u.pere_id !== pu.pere_id && u.id !== pu.id)
-            : [];
-        }
-      }
-
+      // Batch-fetch all related persons
       const allIds = new Set<string>();
       if (pu?.pere_id) allIds.add(pu.pere_id);
       if (pu?.mere_id) allIds.add(pu.mere_id);
-
-      const fullSibLocal = (pu?.enfants_ids ?? []).filter(eid => eid !== id);
-      fullSibLocal.forEach(eid => allIds.add(eid));
-      fullSibU.forEach(u => u.enfants_ids.forEach(eid => { if (eid !== id) allIds.add(eid); }));
-
-      const hfIds: string[] = [];
-      halfFatherU.forEach(u => u.enfants_ids.forEach(eid => {
-        if (eid !== id) { hfIds.push(eid); allIds.add(eid); }
-      }));
-
-      const hmIds: string[] = [];
-      halfMotherU.forEach(u => u.enfants_ids.forEach(eid => {
-        if (eid !== id) { hmIds.push(eid); allIds.add(eid); }
-      }));
-
-      cus.forEach(u => u.enfants_ids.forEach(eid => allIds.add(eid)));
+      cus.forEach(u => {
+        u.enfants_ids.forEach(eid => allIds.add(eid));
+        if (u.pere_id && u.pere_id !== id) allIds.add(u.pere_id);
+        if (u.mere_id && u.mere_id !== id) allIds.add(u.mere_id);
+      });
 
       if (allIds.size > 0) {
-        const { data: batchData } = await supabase
-          .from('persons').select('*').in('id', [...allIds]);
+        const { data: batchData } = await supabase.from('persons').select('*').in('id', [...allIds]);
         if (cancelled) return;
         const pMap = new Map<string, Person>();
         ((batchData as Person[] | null) ?? []).forEach(pp => pMap.set(pp.id, pp));
+        ((dcData as Person[] | null) ?? []).forEach(pp => pMap.set(pp.id, pp));
         setPersonMap(pMap);
       }
 
-      const allFullSibIds = [
-        ...fullSibLocal,
-        ...fullSibU.flatMap(u => u.enfants_ids.filter(eid => eid !== id)),
-      ];
-      setFullSibIds([...new Set(allFullSibIds)]);
-      setHalfFatherIds([...new Set(hfIds)]);
-      setHalfMotherIds([...new Set(hmIds)]);
-
-      if (!cancelled) setLoading(false);
+      if (!cancelled) setRelLoading(false);
     })();
 
     return () => { cancelled = true; };
@@ -177,8 +135,8 @@ export default function PersonView({ id }: { id: string }) {
     );
   }
 
-  const birthYear = person.naiss_annee ? String(person.naiss_annee) : '';
-  const deathYear = person.deces_annee ? String(person.deces_annee) : '';
+  const birthYear = person.naiss_date ? String(new Date(person.naiss_date).getFullYear()) : '';
+  const deathYear = person.deces_date ? String(new Date(person.deces_date).getFullYear()) : '';
   const childIds = [...new Set(childUnions.flatMap(u => u.enfants_ids))];
 
   const sectionHead: React.CSSProperties = {
@@ -249,7 +207,7 @@ export default function PersonView({ id }: { id: string }) {
               </span>
             )}
             {person.ethnie && (
-              <span style={{ padding: '4px 12px', borderRadius: 20, background: '#e8f5ee', fontSize: 13, color: '#2d5a3d' }}>
+              <span style={{ padding: '4px 12px', borderRadius: 20, background: 'var(--bg)', fontSize: 13, color: 'var(--green2)' }}>
                 {person.ethnie}
               </span>
             )}
@@ -266,7 +224,7 @@ export default function PersonView({ id }: { id: string }) {
           {/* Identité condensée */}
           {(() => {
             const parts = [
-              person.naiss_lieu || (person.naiss_annee ? `Né·e en ${person.naiss_annee}` : null),
+              person.naiss_lieu || (person.naiss_date ? `Né·e en ${new Date(person.naiss_date).getFullYear()}` : null),
               person.localite,
               [person.prefix_lignee, person.clan].filter(Boolean).join(' ') || null,
               person.metier,
@@ -281,7 +239,7 @@ export default function PersonView({ id }: { id: string }) {
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--bd)', margin: '0 0 0 0' }} />
 
-        {/* Tabs — en haut */}
+        {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '2px solid var(--bd)', marginBottom: '32px' }}>
           {(['fiche', 'arbre'] as FicheTab[]).map(t => (
             <button
@@ -306,7 +264,11 @@ export default function PersonView({ id }: { id: string }) {
         {/* ── FICHE TAB ── */}
         {tab === 'fiche' && (
           <div>
-            {(() => {
+            {relLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0' }}>
+                <div className="spin" style={{ width: 20, height: 20, borderWidth: 2 }} />
+              </div>
+            ) : (() => {
               const partnerIds = [...new Set(
                 childUnions
                   .map(u => u.pere_id === id ? u.mere_id : u.pere_id)
@@ -354,12 +316,71 @@ export default function PersonView({ id }: { id: string }) {
                 </div>
               </section>
             )}
+
+            {/* Coordonnées */}
+            {(person.metier || person.telephone || person.adresse) && (
+              <section style={{ marginTop: 28 }}>
+                <h2 style={sectionHead}>Coordonnées</h2>
+                <div style={card}>
+                  {person.metier && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 0',
+                      borderBottom: (person.telephone || person.adresse) ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                    }}>
+                      <span style={{ fontSize: 20, width: 30, flexShrink: 0 }}>💼</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, color: 'var(--t3)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500 }}>
+                          Profession
+                        </div>
+                        <div style={{ fontSize: 14, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, marginTop: 2 }}>
+                          {person.metier}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {person.telephone && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 0',
+                      borderBottom: person.adresse ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                    }}>
+                      <span style={{ fontSize: 20, width: 30, flexShrink: 0 }}>📱</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, color: 'var(--t3)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500 }}>
+                          Téléphone
+                        </div>
+                        <div style={{ fontSize: 14, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, marginTop: 2 }}>
+                          {person.telephone}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {person.adresse && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 0',
+                    }}>
+                      <span style={{ fontSize: 20, width: 30, flexShrink: 0 }}>📍</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, color: 'var(--t3)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500 }}>
+                          Adresse
+                        </div>
+                        <div style={{ fontSize: 14, color: 'var(--t1)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, marginTop: 2 }}>
+                          {person.adresse}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
           </div>
         )}
 
         {/* ── ARBRE TAB ── */}
         {tab === 'arbre' && (
-          <div style={{ height: '70vh', minHeight: '400px', position: 'relative' }}>
+          <div style={{ minHeight: '400px', position: 'relative' }}>
             <TreeView
               personId={id}
               scope="reg"
@@ -374,7 +395,7 @@ export default function PersonView({ id }: { id: string }) {
           </div>
         )}
 
-        {/* Bandeau Ajouté par — sous les tabs */}
+        {/* Bandeau Ajouté par */}
         {(person.created_by_name || person.created_at) && (
           <div style={{
             borderTop: '1px solid #f0ede8', marginTop: 40, padding: '16px 0',
@@ -383,7 +404,7 @@ export default function PersonView({ id }: { id: string }) {
           }}>
             <div style={{
               width: 28, height: 28, borderRadius: '50%',
-              background: '#2d5a3d', color: '#fff',
+              background: 'var(--green2)', color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 11, fontWeight: 700, flexShrink: 0,
             }}>

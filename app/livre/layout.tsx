@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDB } from '@/hooks/useDB';
 import { useRealtime } from '@/hooks/useRealtime';
 
-export default function MonarbreLayout({ children }: { children: React.ReactNode }) {
+export default function LivreLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const { loadMyData } = useDB();
   const router = useRouter();
@@ -47,7 +47,16 @@ export default function MonarbreLayout({ children }: { children: React.ReactNode
         />
         <div style={{ display: 'flex', flex: 1, paddingTop: '96px' }}>
           <AppSidebar />
-          <div className="app-main" style={{ position: 'relative', flex: 1, paddingBottom: '120px', overflow: 'hidden', '--page-left': '32px' } as React.CSSProperties}>
+          <div
+            className="app-main"
+            style={{
+              position: 'relative',
+              flex: 1,
+              paddingBottom: '120px',
+              overflow: 'hidden',
+              '--page-left': '32px',
+            } as React.CSSProperties}
+          >
             {children}
           </div>
         </div>

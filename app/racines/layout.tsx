@@ -24,7 +24,7 @@ export default function RacinesLayout({ children }: { children: ReactNode }) {
       <SidebarProvider>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <AboutNavWrapper />
-          <div style={{ display: 'flex', flex: 1, paddingTop: '64px' }}>
+          <div style={{ display: 'flex', flex: 1, paddingTop: '96px' }}>
             <AppSidebar racinesCbs={racinesCbs} />
             <main style={{ flex: 1, minWidth: 0, '--page-left': '32px' } as React.CSSProperties}>
               {children}
