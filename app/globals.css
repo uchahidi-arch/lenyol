@@ -485,6 +485,25 @@ html.dark {
   cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .ln-mm-btn-p:hover { background: var(--h-gold-h); }
+.ln-mm-section {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ln-mm-caret {
+  width: 14px; height: 14px; opacity: .5; transition: transform .2s; flex-shrink: 0;
+}
+.ln-mm-caret.open { transform: rotate(180deg); opacity: .8; }
+.ln-mm-sub {
+  display: flex; flex-direction: column; gap: 1px;
+  padding-left: 12px; padding-bottom: 4px;
+}
+.ln-mm-sublink {
+  width: 100%; text-align: left; padding: 10px 16px; border-radius: 8px;
+  font-size: 14px; font-weight: 400; color: rgba(255,255,255,.6);
+  background: none; border: none; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif; transition: .12s;
+}
+.ln-mm-sublink:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.9); }
+.ln-mm-subdiv { height: 1px; background: rgba(255,255,255,.07); margin: 4px 8px; }
 
 /* ── HERO ── */
 .ln-hero {
@@ -756,10 +775,13 @@ html.dark {
 @media (max-width: 900px) {
   :root { --page-left: 20px; }
   .ln-nav { padding: 0 20px; }
+  .ln-logo { width: auto; }
+  .ln-logo img { margin-left: 0; height: 52px; }
   .ln-nav-center { display: none; }
   .ln-actions .ln-btn-login,
   .ln-actions .ln-btn-subscribe { display: none; }
   .ln-burger { display: flex; }
+  .ln-mobile-menu { top: 96px; }
   .ln-griot-inner { grid-template-columns: 1fr; gap: 48px; }
   .ln-footer-grid { grid-template-columns: 1fr 1fr; }
   .ln-footer-grid > :first-child { grid-column: 1 / -1; }

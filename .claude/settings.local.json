@@ -25,7 +25,10 @@
       "Bash(cmd /c \"tasklist | findstr node\")",
       "Bash(xargs grep *)",
       "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\('next:', p.dependencies?.next || p.devDependencies?.next\\)\")",
-      "Bash(supabase --version)"
+      "Bash(supabase --version)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

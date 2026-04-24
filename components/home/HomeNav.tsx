@@ -20,14 +20,16 @@ export default function HomeNav({ onNavigateToApp, onOpenAuth }: HomeNavProps) {
   const pathname = usePathname();
   const isHome   = pathname === '/';
 
-  const [scrolled,     setScrolled]     = useState(false);
-  const [mobileOpen,   setMobileOpen]   = useState(false);
-  const [searchOpen,   setSearchOpen]   = useState(false);
-  const [arbreOpen,    setArbreOpen]    = useState(false);
-  const [racinesOpen,  setRacinesOpen]  = useState(false);
-  const [userOpen,     setUserOpen]     = useState(false);
-  const [searchQ,      setSearchQ]      = useState('');
-  const [activeCat,    setActiveCat]    = useState('Famille');
+  const [scrolled,          setScrolled]          = useState(false);
+  const [mobileOpen,        setMobileOpen]        = useState(false);
+  const [searchOpen,        setSearchOpen]        = useState(false);
+  const [arbreOpen,         setArbreOpen]         = useState(false);
+  const [racinesOpen,       setRacinesOpen]       = useState(false);
+  const [userOpen,          setUserOpen]          = useState(false);
+  const [mobileArbreOpen,   setMobileArbreOpen]   = useState(false);
+  const [mobileRacinesOpen, setMobileRacinesOpen] = useState(false);
+  const [searchQ,           setSearchQ]           = useState('');
+  const [activeCat,         setActiveCat]         = useState('Famille');
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +73,8 @@ export default function HomeNav({ onNavigateToApp, onOpenAuth }: HomeNavProps) {
     setArbreOpen(false);
     setRacinesOpen(false);
     setUserOpen(false);
+    setMobileArbreOpen(false);
+    setMobileRacinesOpen(false);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -200,15 +204,47 @@ export default function HomeNav({ onNavigateToApp, onOpenAuth }: HomeNavProps) {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="ln-mobile-menu">
-          <button className="ln-mm-link" onClick={() => { close(); router.push('/monarbre'); }}>Mon Arbre</button>
-          <button className="ln-mm-link" onClick={() => { close(); router.push('/livre'); }}>Livre de famille</button>
-          <button className="ln-mm-link" onClick={() => { close(); router.push('/capsule'); }}>Capsule temporelle</button>
-          <button className="ln-mm-link" onClick={() => { close(); onNavigateToApp(); }}>Registre</button>
-          <button className="ln-mm-link" onClick={() => { close(); router.push('/registre/lenyol'); }}>Lignées</button>
+
+          {/* Arbre */}
+          <button className="ln-mm-link ln-mm-section" onClick={() => setMobileArbreOpen(v => !v)}>
+            Arbre
+            <svg className={`ln-mm-caret${mobileArbreOpen ? ' open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          {mobileArbreOpen && (
+            <div className="ln-mm-sub">
+              {user
+                ? <button className="ln-mm-sublink" onClick={() => { close(); router.push('/monarbre'); }}>Voir mon arbre</button>
+                : <button className="ln-mm-sublink" onClick={() => { close(); onOpenAuth('signup'); }}>Créer mon arbre</button>
+              }
+              <button className="ln-mm-sublink" onClick={() => { close(); router.push('/monarbre/prive'); }}>Arbre privé</button>
+              <button className="ln-mm-sublink" onClick={() => { close(); onNavigateToApp(); }}>Voir un autre arbre</button>
+              <div className="ln-mm-subdiv" />
+              <button className="ln-mm-sublink" onClick={() => { close(); router.push('/livre'); }}>Livre de famille</button>
+              <button className="ln-mm-sublink" onClick={() => { close(); router.push('/capsule'); }}>Capsule temporelle</button>
+              <button className="ln-mm-sublink" onClick={() => { close(); router.push('/monarbre/export'); }}>Exporter mon arbre</button>
+            </div>
+          )}
+
+          {/* Racines */}
+          <button className="ln-mm-link ln-mm-section" onClick={() => setMobileRacinesOpen(v => !v)}>
+            Racines
+            <svg className={`ln-mm-caret${mobileRacinesOpen ? ' open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          {mobileRacinesOpen && (
+            <div className="ln-mm-sub">
+              <button className="ln-mm-sublink" onClick={() => { close(); router.push('/racines'); }}>Lignées</button>
+              <button className="ln-mm-sublink" onClick={() => { close(); router.push('/racines'); }}>Royaumes</button>
+              <button className="ln-mm-sublink" onClick={() => { close(); router.push('/racines'); }}>Ethnies</button>
+              <div className="ln-mm-subdiv" />
+              <button className="ln-mm-sublink" onClick={() => { close(); router.push('/racines'); }}>Noms de familles</button>
+            </div>
+          )}
+
           <Link href="/griot" className="ln-mm-link" onClick={close}>Griot</Link>
           <Link href="/timeline" className="ln-mm-link" onClick={close}>Chronologie</Link>
           <Link href="/carte" className="ln-mm-link" onClick={close}>Carte</Link>
           <button className="ln-mm-link" onClick={() => { setMobileOpen(false); setSearchOpen(true); }}>Rechercher</button>
+
           <div className="ln-mm-divider" />
           <div className="ln-mm-auth">
             {!user ? (
